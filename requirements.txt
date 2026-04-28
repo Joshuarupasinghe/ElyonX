@@ -1,7 +1,0 @@
-numpy
-scipy
-sounddevice
-torch
-pyqt6
-python-osc
-pyqtgraph
