@@ -1,0 +1,93 @@
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { VerticalFader } from '../Controls/VerticalFader';
+import { colors, typography, spacing, radii } from '../../theme/theme';
+
+interface MasterFaderProps {
+  value: number;
+  onValueChange: (db: number) => void;
+}
+
+export const MasterFader: React.FC<MasterFaderProps> = ({
+  value,
+  onValueChange,
+}) => {
+  return (
+    <View style={styles.container}>
+      {/* Pan indicator */}
+      <View style={styles.panIndicator}>
+        <View style={styles.panLine} />
+      </View>
+
+      {/* Fader */}
+      <View style={styles.faderContainer}>
+        <VerticalFader
+          value={value}
+          min={-60}
+          max={6}
+          height={140}
+          width={10}
+          showValue={true}
+          color={colors.purple}
+          onValueChange={onValueChange}
+        />
+      </View>
+
+      {/* Label */}
+      <View style={styles.labelContainer}>
+        <Text style={styles.label}>MASTER</Text>
+      </View>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    width: 100,
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    padding: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.purple,
+    marginLeft: spacing.lg,
+  },
+  panIndicator: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xs,
+  },
+  panLine: {
+    width: 1,
+    height: 10,
+    backgroundColor: colors.textMuted,
+  },
+  faderContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  labelContainer: {
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+    borderRadius: radii.sm,
+    marginTop: spacing.xs,
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: colors.purple,
+  },
+  label: {
+    color: colors.purple,
+    fontSize: typography.xs,
+    fontWeight: typography.bold,
+    textAlign: 'center',
+    letterSpacing: 1,
+  },
+});
