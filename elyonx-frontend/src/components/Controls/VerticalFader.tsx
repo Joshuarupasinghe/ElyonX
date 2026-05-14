@@ -6,11 +6,12 @@ interface VerticalFaderProps {
   value: number;         // in dB
   min?: number;          // default -60
   max?: number;          // default +6
-  height?: number;       // track height in px
+  height?: number;       // track height in px (used as fallback if container doesn't flex)
   width?: number;        // track width in px
   showValue?: boolean;
   color?: string;
   label?: string;
+  fillContainer?: boolean; // if true, measure parent and fill it
   onValueChange: (db: number) => void;
   onChangeEnd?: (db: number) => void;
 }
@@ -32,11 +33,12 @@ export const VerticalFader: React.FC<VerticalFaderProps> = ({
   value,
   min = -60,
   max = 6,
-  height = 180,
+  height: heightProp = 180,
   width = 8,
   showValue = true,
   color,
   label,
+  fillContainer = false,
   onValueChange,
   onChangeEnd,
 }) => {
@@ -47,6 +49,17 @@ export const VerticalFader: React.FC<VerticalFaderProps> = ({
   const pendingValueRef = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
   const lastCommitTsRef = useRef(0);
+
+  // Dynamic height: if fillContainer, measure parent and fill it; else use height prop
+  const [measuredHeight, setMeasuredHeight] = useState(0);
+  const thumbHeight = 16;
+  const valueDisplayHeight = showValue ? 18 : 0;
+  const labelDisplayHeight = label ? 20 : 0;
+  const overhead = thumbHeight + valueDisplayHeight + labelDisplayHeight + 4;
+
+  const height = fillContainer && measuredHeight > 0
+    ? Math.max(40, measuredHeight - overhead)
+    : heightProp;
 
   useEffect(() => {
     if (!isDragging) {
@@ -123,10 +136,12 @@ export const VerticalFader: React.FC<VerticalFaderProps> = ({
 
   const displayValue = isDragging ? dragValue : value;
   const thumbY = dbToY(displayValue);
-  const thumbHeight = 20;
-  const thumbWidth = width + 16;
-  const totalWidth = thumbWidth + 4;
+  const thumbWidth = width + 14;
   const thumbColor = color ?? getFaderColor(value);
+
+  const TICK_LABEL_WIDTH = 28;
+  const TICK_GAP = 6;
+  const TICK_LINE_WIDTH = 4;
 
   // dB tick marks
   const ticks = useMemo(() => {
@@ -139,10 +154,17 @@ export const VerticalFader: React.FC<VerticalFaderProps> = ({
     return result;
   }, [min, max, dbToY]);
 
+  const handleContainerLayout = useCallback((e: { nativeEvent: { layout: { height: number } } }) => {
+    if (fillContainer) {
+      setMeasuredHeight(e.nativeEvent.layout.height);
+    }
+  }, [fillContainer]);
+
   return (
     <View
       collapsable={false}
-      style={[styles.container, { height: height + thumbHeight + 40 }]}
+      style={[styles.container, fillContainer ? styles.containerFill : { height: height + overhead }]}
+      onLayout={handleContainerLayout}
       onStartShouldSetResponder={() => true}
       onMoveShouldSetResponder={() => true}
       onResponderTerminationRequest={() => false}
@@ -163,58 +185,65 @@ export const VerticalFader: React.FC<VerticalFaderProps> = ({
         </Text>
       )}
 
-      <View style={[styles.trackContainer, { height, width: totalWidth }]}>
-        {/* Tick marks */}
-        {ticks.map(tick => (
-          <View
-            key={tick.db}
-            style={[styles.tickContainer, { top: tick.y - 5 }]}
-          >
-            <Text style={styles.tickLabel}>
-              {tick.db > min ? tick.db : '-∞'}
-            </Text>
-          </View>
-        ))}
-
-        {/* Track background */}
-        <View
-          style={[
-            styles.track,
-            {
-              height,
-              width,
-              left: (totalWidth - width) / 2,
-            },
-          ]}
-        >
-          {/* Filled portion */}
+      {/* Fader row: track on left, scale labels on right */}
+      <View style={[styles.faderRow, { height }]}>
+        {/* Track + thumb area */}
+        <View style={[styles.trackArea, { height, width: thumbWidth }]}>
+          {/* Track background */}
           <View
             style={[
-              styles.trackFill,
+              styles.track,
               {
-                height: height - thumbY,
-                bottom: 0,
-                backgroundColor: thumbColor,
+                height,
+                width,
+                left: (thumbWidth - width) / 2,
               },
             ]}
-          />
+          >
+            {/* Filled portion */}
+            <View
+              style={[
+                styles.trackFill,
+                {
+                  height: height - thumbY,
+                  bottom: 0,
+                  backgroundColor: thumbColor,
+                },
+              ]}
+            />
+          </View>
+
+          {/* Thumb */}
+          <View
+            style={[
+              styles.thumb,
+              {
+                top: thumbY - thumbHeight / 2,
+                left: (thumbWidth - thumbWidth) / 2,
+                width: thumbWidth,
+                height: thumbHeight,
+                backgroundColor: colors.surfaceElevated,
+                borderColor: thumbColor,
+              },
+            ]}
+          >
+            <View style={[styles.thumbLine, { backgroundColor: thumbColor }]} />
+          </View>
         </View>
 
-        {/* Thumb */}
-        <View
-          style={[
-            styles.thumb,
-            {
-              top: thumbY - thumbHeight / 2,
-              left: (totalWidth - thumbWidth) / 2,
-              width: thumbWidth,
-              height: thumbHeight,
-              backgroundColor: colors.surfaceElevated,
-              borderColor: thumbColor,
-            },
-          ]}
-        >
-          <View style={[styles.thumbLine, { backgroundColor: thumbColor }]} />
+        {/* Scale: tick lines + labels to the right */}
+        <View style={[styles.scaleArea, { height, marginLeft: TICK_GAP }]}>
+          {ticks.map(tick => (
+            <View
+              key={tick.db}
+              style={[styles.tickRow, { top: tick.y - 5 }]}
+            >
+              <View style={[styles.tickLine, { width: TICK_LINE_WIDTH, backgroundColor: tick.db === 0 ? colors.textMuted : colors.border }]} />
+              <Text style={[styles.tickLabel, { width: TICK_LABEL_WIDTH }]}>
+                {tick.db > min ? tick.db : '-∞'}
+              </Text>
+            </View>
+          ))}
         </View>
       </View>
 
@@ -228,6 +257,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-start',
   },
+  containerFill: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+  },
   dbValue: {
     fontSize: typography.xs,
     fontWeight: typography.bold,
@@ -235,7 +269,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     minWidth: 36,
   },
-  trackContainer: {
+  faderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  trackArea: {
     position: 'relative',
   },
   track: {
@@ -253,17 +291,24 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     opacity: 0.6,
   },
-  tickContainer: {
+  scaleArea: {
+    position: 'relative',
+  },
+  tickRow: {
     position: 'absolute',
     left: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
     height: 10,
-    justifyContent: 'center',
+  },
+  tickLine: {
+    height: 1,
+    marginRight: 3,
   },
   tickLabel: {
-    color: colors.textDim,
-    fontSize: 7,
-    textAlign: 'right',
-    width: 20,
+    color: colors.textMuted,
+    fontSize: 9,
+    textAlign: 'left',
   },
   thumb: {
     position: 'absolute',

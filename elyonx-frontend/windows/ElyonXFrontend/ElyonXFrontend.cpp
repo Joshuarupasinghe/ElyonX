@@ -70,12 +70,12 @@ _Use_decl_annotations_ int CALLBACK WinMain(HINSTANCE instance, HINSTANCE, PSTR 
 
   // Get the AppWindow so we can configure its initial title and size
   auto appWindow{reactNativeWin32App.AppWindow()};
-  appWindow.Title(L"ElyonXFrontend");
+  appWindow.Title(L"ElyonX");
   appWindow.Resize({1000, 1000});
 
   // Get the ReactViewOptions so we can set the initial RN component to load
   auto viewOptions{reactNativeWin32App.ReactViewOptions()};
-  viewOptions.ComponentName(L"ElyonXFrontend");
+  viewOptions.ComponentName(L"ElyonX");
 
   // Start the app
   reactNativeWin32App.Start();

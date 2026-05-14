@@ -1,0 +1,39 @@
+# Web Framework
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+pydantic==2.10.3
+pydantic-settings==2.6.1
+websockets==13.1
+python-multipart==0.0.12
+
+# Audio I/O
+sounddevice==0.5.1
+
+# DSP / Feature Extraction
+numpy==2.1.3
+scipy==1.14.1
+
+# ML / Deep Learning
+torch==2.5.1
+torchaudio==2.5.1
+
+# Database (MongoDB)
+motor==3.6.0
+
+# Google OAuth
+google-auth==2.36.0
+google-auth-oauthlib==1.2.1
+google-auth-httplib2==0.2.0
+
+# JWT
+python-jose[cryptography]==3.3.0
+
+# HTTP Client (async)
+httpx==0.28.0
+
+# Environment
+python-dotenv==1.0.1
+
+# Dev / Testing
+pytest==8.3.4
+pytest-asyncio==0.24.0

@@ -1,3 +1,6 @@
+// Instrument types for channel classification
+export type InstrumentType = 'kick' | 'snare' | 'hihat';
+
 // EQ Band filter types
 export type EQBandType = 'bell' | 'lowshelf' | 'highshelf' | 'highpass' | 'lowpass';
 
@@ -14,8 +17,10 @@ export interface Channel {
   id: string;
   index: number;        // 1-based channel number on the mixer
   name: string;
+  instrument: InstrumentType;
   input: string;        // e.g., "INPUT 01"
   color: string;
+  icon: string;         // Emoji icon for the channel
   faderValue: number;   // -60 to +6 dB (display), 0–1 (OSC)
   muted: boolean;
   solo: boolean;
@@ -76,50 +81,77 @@ export interface UIState {
 
 // Default EQ bands for a new channel
 export const DEFAULT_EQ_BANDS: EQBand[] = [
-  { id: 1, type: 'highpass', frequency: 80, gain: 0, q: 0.707, enabled: true },
-  { id: 2, type: 'lowshelf', frequency: 200, gain: 0, q: 0.707, enabled: true },
-  { id: 3, type: 'bell', frequency: 1000, gain: 0, q: 1.0, enabled: true },
-  { id: 4, type: 'highshelf', frequency: 8000, gain: 0, q: 0.707, enabled: true },
-  { id: 5, type: 'lowpass', frequency: 16000, gain: 0, q: 0.707, enabled: false },
+  { id: 1, type: 'bell', frequency: 80, gain: 0, q: 0.7, enabled: true },
+  { id: 2, type: 'bell', frequency: 250, gain: 0, q: 0.7, enabled: true },
+  { id: 3, type: 'bell', frequency: 2000, gain: 0, q: 0.7, enabled: true },
+  { id: 4, type: 'bell', frequency: 8000, gain: 0, q: 0.7, enabled: true },
 ];
 
-// Default channels matching the reference design
-export const DEFAULT_CHANNELS: Channel[] = [
-  {
-    id: 'ch-1', index: 1, name: 'Kick', input: 'INPUT 01',
-    color: '#7B5CFA', faderValue: -3.2, muted: false, solo: false,
-    eqBands: [...DEFAULT_EQ_BANDS], eqEnabled: true,
-  },
-  {
-    id: 'ch-2', index: 2, name: 'Snare', input: 'INPUT 02',
-    color: '#7B5CFA', faderValue: -8.4, muted: false, solo: false,
-    eqBands: [...DEFAULT_EQ_BANDS], eqEnabled: true,
-  },
-  {
-    id: 'ch-3', index: 7, name: 'Lead Vocal', input: 'INPUT 07',
-    color: '#7B5CFA', faderValue: -1.2, muted: false, solo: true,
-    eqBands: [
-      { id: 1, type: 'highpass', frequency: 80, gain: 0, q: 0.707, enabled: true },
-      { id: 2, type: 'bell', frequency: 300, gain: -4, q: 1.5, enabled: true },
-      { id: 3, type: 'bell', frequency: 487.7, gain: -5.1, q: 2.0, enabled: true },
-      { id: 4, type: 'highshelf', frequency: 10000, gain: 3, q: 0.707, enabled: true },
-      { id: 5, type: 'lowpass', frequency: 18000, gain: 0, q: 0.707, enabled: true },
-    ],
-    eqEnabled: true,
-  },
-  {
-    id: 'ch-4', index: 8, name: 'Backing Vocal', input: 'INPUT 08',
-    color: '#7B5CFA', faderValue: -22.6, muted: true, solo: false,
-    eqBands: [...DEFAULT_EQ_BANDS], eqEnabled: true,
-  },
-  {
-    id: 'ch-5', index: 4, name: 'Bass', input: 'INPUT 04',
-    color: '#FFAB40', faderValue: -12.8, muted: false, solo: false,
-    eqBands: [...DEFAULT_EQ_BANDS], eqEnabled: true,
-  },
-  {
-    id: 'ch-6', index: 5, name: 'Electric Guitar', input: 'INPUT 05',
-    color: '#FFAB40', faderValue: -5.4, muted: false, solo: false,
-    eqBands: [...DEFAULT_EQ_BANDS], eqEnabled: true,
-  },
-];
+
+export interface BandEnergy {
+  name: string;
+  low_hz: number;
+  high_hz: number;
+  energy_db: number;
+}
+
+export interface ImbalanceIndicators {
+  muddiness: number;
+  harshness: number;
+  thinness: number;
+  brightness: number;
+  average_db: number;
+}
+
+export interface FeedbackAlert {
+  frequency_hz: number;
+  magnitude_db: number;
+  excess_db: number;
+}
+
+export type EQRecommendationStatus = 'ok' | 'warning' | 'error';
+
+export interface EQRecommendationQuality {
+  status: EQRecommendationStatus;
+  warnings: string[];
+  usable: boolean;
+  rms_dbfs: number | null;
+  peak_dbfs: number | null;
+  smoothed: boolean;
+}
+
+export interface EQRecommendation {
+  instrument: InstrumentType;
+  inference_ms: number;
+  bands: EQBand[];
+  quality: EQRecommendationQuality;
+}
+
+export interface RTAFrame {
+  event: "rta_frame" | "stream_offline" | "eq_recommendation";
+  timestamp_ms: number;
+  processing_time_ms: number;
+  rta: {
+    frequencies: number[];
+    magnitudes_db: number[];
+  };
+  spl_dbfs: number;
+  bands: BandEnergy[];
+  imbalance: ImbalanceIndicators;
+  feedback: {
+    alerts: FeedbackAlert[];
+    risk_level: "safe" | "warning" | "danger";
+  };
+  // Only present when event === 'eq_recommendation'
+  instrument?: InstrumentType;
+  inference_ms?: number;
+  eq_bands?: EQBand[]; // Note: the backend sends 'bands' inside eq_recommendation, so we might need to handle the overlap carefully, but the backend to_dict() returns { instrument, inference_ms, bands } - we should make sure the payload merging doesn't overwrite RTA bands if we broadcast a raw eq_recommendation without RTA data. Wait, the backend broadcasts just the EQPrediction dictionary which has 'event': 'eq_recommendation', 'instrument', 'inference_ms', 'bands'. This is a completely different message shape from RTAFrame! So let's create a separate interface.
+}
+
+export interface EQRecommendationMessage {
+  event: "eq_recommendation";
+  instrument: InstrumentType;
+  inference_ms: number;
+  bands: EQBand[];
+  quality?: EQRecommendationQuality;
+}

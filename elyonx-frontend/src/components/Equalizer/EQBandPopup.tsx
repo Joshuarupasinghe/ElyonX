@@ -1,11 +1,11 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, LayoutChangeEvent, GestureResponderEvent } from 'react-native';
+import { View, StyleSheet, LayoutChangeEvent, GestureResponderEvent } from 'react-native';
 import { RotaryKnob } from '../Controls/RotaryKnob';
 import { IconButton } from '../common/IconButton';
 import { Dropdown, EQ_BAND_TYPE_OPTIONS } from '../common/Dropdown';
 import { EQBand, EQBandType } from '../../store/types';
 import { formatFrequency } from '../../utils/eqMath';
-import { colors, typography, radii, spacing, shadows } from '../../theme/theme';
+import { colors, radii, spacing, shadows } from '../../theme/theme';
 
 interface EQBandPopupProps {
   band: EQBand;

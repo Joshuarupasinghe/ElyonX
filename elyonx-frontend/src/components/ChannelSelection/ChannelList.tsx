@@ -29,6 +29,16 @@ export const ChannelList: React.FC<ChannelListProps> = ({
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {channels.length === 0 && (
+          <View style={styles.emptyState}>
+            {/* <Text style={styles.emptyIcon}>🎛️</Text> */}
+            <Text style={styles.emptyTitle}>No Channels</Text>
+            <Text style={styles.emptySubtitle}>
+              Add a channel to start mixing
+            </Text>
+          </View>
+        )}
+
         {channels.map(channel => (
           <ChannelItem
             key={channel.id}
@@ -47,22 +57,21 @@ export const ChannelList: React.FC<ChannelListProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    width: 250,
     flex: 1,
     minHeight: 0,
     backgroundColor: colors.surface,
     borderRadius: radii.md,
-    padding: spacing.lg,
+    padding: spacing.sm,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
   },
   title: {
     color: colors.textSecondary,
-    fontSize: typography.sm,
+    fontSize: typography.xs,
     fontWeight: typography.semiBold,
     letterSpacing: 2,
     textTransform: 'uppercase',
-    marginBottom: spacing.lg,
+    marginBottom: spacing.sm,
   },
   scrollView: {
     flex: 1,
@@ -70,5 +79,26 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingBottom: spacing.md,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.xxxl,
+    paddingHorizontal: spacing.lg,
+  },
+  emptyIcon: {
+    fontSize: 32,
+    marginBottom: spacing.md,
+  },
+  emptyTitle: {
+    color: colors.textSecondary,
+    fontSize: typography.lg,
+    fontWeight: typography.semiBold,
+    marginBottom: spacing.xs,
+  },
+  emptySubtitle: {
+    color: colors.textDim,
+    fontSize: typography.sm,
+    textAlign: 'center',
   },
 });

@@ -68,3 +68,82 @@ yarn-error.log
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+# Python
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+*.pyd
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+pip-wheel-metadata/
+pip-delete-this-directory.txt
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+.python-version
+
+# Installer logs
+pip-log.txt
+
+# Unit test / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+nosetests.xml
+coverage.report
+
+# Pytest cache
+.cache/
+
+# mypy
+.mypy_cache/
+
+# Pyre
+.pyre/
+
+# PyCharm
+.idea/
+
+# IPython/Jupyter
+.ipynb_checkpoints
+
+# Sphinx
+docs/_build/
+
+# profiling
+*.prof
+
+# pyinstaller
+*.manifest
+*.spec
+
+# Pyright
+typings/
+
+# Local env files
+.env
+.env.*
+
+# VS Code workspace settings (if present)
+.vscode/*
+.history/
+
+# other
+helpers/
+report_sources/
+tools/
+final_report/

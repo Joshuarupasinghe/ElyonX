@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "esnext",
     "module": "commonjs",
-    "lib": ["es2021"],
+    "lib": ["es2021", "dom"],
     "allowJs": true,
     "jsx": "react-native",
     "strict": true,
@@ -20,5 +20,13 @@
     }
   },
   "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules", "babel.config.js", "metro.config.js", "jest.config.js", "windows"]
+  "exclude": [
+    "node_modules",
+    "babel.config.js",
+    "metro.config.js",
+    "jest.config.js",
+    "jest.config.windows.js",
+    "vite.config.ts",
+    "windows"
+  ]
 }

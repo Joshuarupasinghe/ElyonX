@@ -1,17 +1,55 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { IconButton } from '../common/IconButton';
 import { colors, typography, spacing, radii } from '../../theme/theme';
+import type { AuthUser } from '../../auth';
 
 interface TopBarProps {
   mixerConnected: boolean;
   mixerName?: string;
+  /** Whether the WebSocket to the backend is connected. */
+  rtaConnected?: boolean;
+  /** Whether the audio capture stream is active on the backend. */
+  rtaStreamOnline?: boolean;
+  onSettingsPress?: () => void;
+  settingsActive?: boolean;
+  user?: AuthUser | null;
+  onViewAccount?: () => void;
+  onLogout?: () => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
   mixerConnected,
   mixerName = 'MIXER',
+  rtaConnected = false,
+  rtaStreamOnline = false,
+  onSettingsPress,
+  settingsActive = false,
+  user,
+  onViewAccount,
+  onLogout,
 }) => {
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+
+  // Determine RTA indicator color: green = live, orange = connected but no stream, red = disconnected
+  const rtaColor = rtaConnected
+    ? rtaStreamOnline
+      ? colors.green
+      : colors.orange
+    : colors.red;
+  const rtaLabel = rtaConnected
+    ? rtaStreamOnline
+      ? 'RTA LIVE'
+      : 'RTA IDLE'
+    : 'RTA OFFLINE';
+
+  const avatarInitial = useMemo(() => {
+    const source = user?.name?.trim() || user?.email?.trim() || '?';
+    return source.charAt(0).toUpperCase();
+  }, [user?.email, user?.name]);
+
+  const accountLabel = user?.name?.trim() || user?.email || 'Account';
+
   return (
     <View style={styles.container}>
       {/* Logo */}
@@ -30,6 +68,12 @@ export const TopBar: React.FC<TopBarProps> = ({
 
       {/* Right controls */}
       <View style={styles.rightControls}>
+        {/* RTA status */}
+        <View style={styles.statusContainer}>
+          <View style={[styles.statusDot, { backgroundColor: rtaColor }]} />
+          <Text style={styles.statusText}>{rtaLabel}</Text>
+        </View>
+
         {/* Connection status */}
         <View style={styles.statusContainer}>
           <View
@@ -47,12 +91,63 @@ export const TopBar: React.FC<TopBarProps> = ({
         <IconButton
           icon="settings"
           size={20}
-          color={colors.textSecondary}
-          onPress={() => {}}
+          color={settingsActive ? colors.purple : colors.textSecondary}
+          onPress={onSettingsPress}
+          style={settingsActive ? styles.settingsButtonActive : undefined}
         />
 
         {/* Profile avatar */}
-        <View style={styles.avatar} />
+        <View style={styles.profileRoot}>
+          <TouchableOpacity
+            style={[
+              styles.avatar,
+              profileMenuOpen && styles.avatarActive,
+            ]}
+            onPress={() => setProfileMenuOpen((open) => !open)}
+            activeOpacity={0.75}
+          >
+            <Text style={styles.avatarText}>{avatarInitial}</Text>
+          </TouchableOpacity>
+
+          {profileMenuOpen && (
+            <View style={styles.profileMenu}>
+              <View style={styles.profileHeader}>
+                <Text style={styles.profileName} numberOfLines={1}>
+                  {accountLabel}
+                </Text>
+                {user?.email ? (
+                  <Text style={styles.profileEmail} numberOfLines={1}>
+                    {user.email}
+                  </Text>
+                ) : null}
+              </View>
+
+              <TouchableOpacity
+                style={styles.profileMenuItem}
+                onPress={() => {
+                  setProfileMenuOpen(false);
+                  onViewAccount?.();
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.profileMenuText}>VIEW ACCOUNT</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.profileMenuItem, styles.profileMenuItemDanger]}
+                onPress={() => {
+                  setProfileMenuOpen(false);
+                  onLogout?.();
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.profileMenuText, styles.profileMenuTextDanger]}>
+                  LOGOUT
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
       </View>
     </View>
   );
@@ -62,9 +157,10 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
-    height: 56,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    height: 44,
+    zIndex: 50,
   },
   logoContainer: {
     flexDirection: 'row',
@@ -133,6 +229,74 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 16,
     backgroundColor: colors.purpleLight,
-    opacity: 0.8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  avatarActive: {
+    borderColor: colors.purple,
+    backgroundColor: colors.purple,
+  },
+  avatarText: {
+    color: colors.textPrimary,
+    fontSize: typography.md,
+    fontWeight: typography.bold,
+    letterSpacing: 0,
+  },
+  profileRoot: {
+    position: 'relative',
+  },
+  profileMenu: {
+    position: 'absolute',
+    top: 38,
+    right: 0,
+    width: 220,
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: 'hidden',
+    zIndex: 100,
+    elevation: 12,
+  },
+  profileHeader: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderSubtle,
+  },
+  profileName: {
+    color: colors.textPrimary,
+    fontSize: typography.md,
+    fontWeight: typography.bold,
+    marginBottom: 3,
+  },
+  profileEmail: {
+    color: colors.textSecondary,
+    fontSize: typography.xs,
+    fontWeight: typography.medium,
+  },
+  profileMenuItem: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  profileMenuItemDanger: {
+    borderTopWidth: 1,
+    borderTopColor: colors.borderSubtle,
+  },
+  profileMenuText: {
+    color: colors.textPrimary,
+    fontSize: typography.xs,
+    fontWeight: typography.semiBold,
+    letterSpacing: 1,
+  },
+  profileMenuTextDanger: {
+    color: colors.red,
+  },
+  settingsButtonActive: {
+    backgroundColor: colors.purpleBg,
+    borderWidth: 1,
+    borderColor: colors.purple,
   },
 });

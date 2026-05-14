@@ -88,9 +88,9 @@ const ChannelFaderComponent: React.FC<ChannelFaderProps> = ({
           value={channel.faderValue}
           min={-60}
           max={6}
-          height={120}
-          width={5}
+          width={6}
           showValue={false}
+          fillContainer
           color={isSelected ? colors.purple : undefined}
           onValueChange={onFaderChange}
         />
@@ -123,13 +123,13 @@ export const ChannelFader = React.memo(ChannelFaderComponent);
 
 const styles = StyleSheet.create({
   container: {
-    width: 72,
+    width: 80,
     height: '100%',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     backgroundColor: colors.surface,
     borderRadius: radii.md,
-    paddingVertical: spacing.xs,
+    paddingVertical: spacing.sm,
     paddingHorizontal: 6,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
@@ -139,12 +139,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.purpleBg,
   },
   panIndicatorContainer: {
-    marginBottom: 4,
+    marginBottom: 2,
   },
   panIndicator: {
-    width: 22,
-    height: 22,
-    borderRadius: 12,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: 'center',
@@ -152,18 +152,18 @@ const styles = StyleSheet.create({
   },
   panLine: {
     width: 1,
-    height: 10,
+    height: 8,
     backgroundColor: colors.textMuted,
   },
   msRow: {
     flexDirection: 'row',
-    gap: 4,
-    marginBottom: 6,
+    gap: 3,
+    marginBottom: 3,
   },
   msButton: {
-    width: 24,
-    height: 22,
-    borderRadius: 14,
+    width: 20,
+    height: 18,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.surfaceElevated,
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
   },
   msText: {
     color: colors.textMuted,
-    fontSize: typography.xs,
+    fontSize: 7,
     fontWeight: typography.bold,
   },
   muteActiveText: {
@@ -194,12 +194,13 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: 0,
   },
   labelContainer: {
-    paddingVertical: 3,
-    paddingHorizontal: 6,
+    paddingVertical: 2,
+    paddingHorizontal: 4,
     borderRadius: radii.sm,
-    marginTop: 4,
+    marginTop: 2,
     backgroundColor: colors.surfaceElevated,
   },
   labelSelected: {
@@ -207,10 +208,10 @@ const styles = StyleSheet.create({
   },
   label: {
     color: colors.textSecondary,
-    fontSize: 8,
+    fontSize: 7,
     fontWeight: typography.semiBold,
     textAlign: 'center',
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
   labelTextSelected: {
     color: colors.textPrimary,

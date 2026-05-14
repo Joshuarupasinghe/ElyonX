@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, LayoutChangeEvent } from 'react-native';
 import Svg, { Line } from 'react-native-svg';
 import { EQCurve } from './EQCurve';
+import { RTAOverlay } from './RTAOverlay';
 import { EQPoint } from './EQPoint';
 import { EQBandPopup } from './EQBandPopup';
 import { EQGainFader } from './EQGainFader';
@@ -17,6 +18,8 @@ interface EQGraphProps {
   onAddBand: () => void;
   onRemoveBand: (bandId: number) => void;
   onOverallGainChange: (db: number) => void;
+  /** Live RTA spectrum data from the backend WebSocket. */
+  rtaData?: { frequencies: number[]; magnitudes_db: number[] } | null;
 }
 
 const BAND_COLORS = [
@@ -27,13 +30,13 @@ const BAND_COLORS = [
   colors.eqBand5,
 ];
 
-const MIN_GAIN = -18;
-const MAX_GAIN = 18;
+const MIN_GAIN = -12;
+const MAX_GAIN = 12;
 const ESTIMATED_POPUP_WIDTH = 360;
 const ESTIMATED_POPUP_HEIGHT = 170;
 const FREQ_TICKS = [50, 100, 200, 300, 500, '1.0k', '2.0k', '3.0k', '5.0k', '10.0k', '20.0k'];
 const FREQ_VALUES = [50, 100, 200, 300, 500, 1000, 2000, 3000, 5000, 10000, 20000];
-const GAIN_TICKS = [18, 12, 6, 0, -6, -12, -18];
+const GAIN_TICKS = [12, 9, 6, 3, 0, -3, -6, -9, -12];
 
 export const EQGraph: React.FC<EQGraphProps> = ({
   bands,
@@ -42,6 +45,7 @@ export const EQGraph: React.FC<EQGraphProps> = ({
   onAddBand,
   onRemoveBand,
   onOverallGainChange,
+  rtaData,
 }) => {
   const [selectedBandId, setSelectedBandId] = useState<number | null>(null);
   const [graphDimensions, setGraphDimensions] = useState({ width: 600, height: 380 });
@@ -140,6 +144,18 @@ export const EQGraph: React.FC<EQGraphProps> = ({
                     );
                   })}
                 </>
+              )}
+
+              {/* Live RTA spectrum overlay (behind EQ curves) */}
+              {rtaData && rtaData.frequencies.length > 0 && (
+                <RTAOverlay
+                  frequencies={rtaData.frequencies}
+                  magnitudes_db={rtaData.magnitudes_db}
+                  graphWidth={graphWidth}
+                  graphHeight={graphHeight}
+                  minDb={-120}
+                  maxDb={0}
+                />
               )}
 
               {/* EQ Curve */}
@@ -247,17 +263,18 @@ const styles = StyleSheet.create({
   },
   title: {
     color: colors.textSecondary,
-    fontSize: typography.sm,
+    fontSize: typography.xs,
     fontWeight: typography.semiBold,
     letterSpacing: 2,
     textTransform: 'uppercase',
-    padding: spacing.lg,
-    paddingBottom: spacing.sm,
+    padding: spacing.sm,
+    paddingBottom: spacing.xs,
   },
   graphRow: {
     flexDirection: 'row',
     flex: 1,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: spacing.xs,
+    paddingBottom: spacing.sm,
   },
   graphContainer: {
     flex: 1,

@@ -1,5 +1,5 @@
 import { MixerAdapter } from './MixerAdapter';
-import { MixerEvent, MixerEventType } from '../../store/types';
+import { MixerEvent } from '../../store/types';
 
 /**
  * Behringer X32 / Midas M32 OSC adapter.

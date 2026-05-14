@@ -103,7 +103,7 @@ export class OscClient {
   /**
    * Process incoming raw OSC data (called by UDP socket listener)
    */
-  private handleIncoming = (data: Buffer): void => {
+  private handleIncoming = (_data: Buffer): void => {
     try {
       // TODO: Decode with osc.js
       // const osc = require('osc');

@@ -1,0 +1,6 @@
+coverage/
+dist/
+node_modules/
+windows/
+vite.stdout.log
+vite.stderr.log

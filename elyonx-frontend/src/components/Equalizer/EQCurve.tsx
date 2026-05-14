@@ -74,8 +74,8 @@ export const EQCurve: React.FC<EQCurveProps> = ({
   bands,
   graphWidth,
   graphHeight,
-  minGain = -18,
-  maxGain = 18,
+  minGain = -12,
+  maxGain = 12,
 }) => {
   const frequencies = useMemo(() => generateLogFrequencies(20, 20000, 200), []);
 

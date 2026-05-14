@@ -65,17 +65,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.surface,
     borderRadius: radii.md,
-    padding: spacing.lg,
+    padding: spacing.sm,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
   },
   title: {
     color: colors.textSecondary,
-    fontSize: typography.sm,
+    fontSize: typography.xs,
     fontWeight: typography.semiBold,
     letterSpacing: 2,
     textTransform: 'uppercase',
-    marginBottom: spacing.md,
+    marginBottom: spacing.xs,
   },
   fadersRow: {
     flexDirection: 'row',
@@ -88,8 +88,8 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     alignItems: 'stretch',
-    gap: spacing.md,
-    paddingRight: spacing.md,
+    gap: spacing.sm,
+    paddingRight: spacing.sm,
     flexGrow: 1,
   },
 });

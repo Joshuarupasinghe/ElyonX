@@ -7,16 +7,16 @@ interface BottomBarProps {
   aiAssistEnabled: boolean;
   onToggleAiAssist: (value: boolean) => void;
   onAnalyzeSelected: () => void;
-  onSnapshot: () => void;
-  onFinalizeMix: () => void;
+  onStartAnalyzing: () => void;
+  onResetEQ: () => void;
 }
 
 export const BottomBar: React.FC<BottomBarProps> = ({
   aiAssistEnabled,
   onToggleAiAssist,
   onAnalyzeSelected,
-  onSnapshot,
-  onFinalizeMix,
+  onStartAnalyzing,
+  onResetEQ,
 }) => {
   return (
     <View style={styles.container}>
@@ -43,22 +43,22 @@ export const BottomBar: React.FC<BottomBarProps> = ({
           showStatus={true}
         />
 
-        {/* Snapshot button */}
+        {/* Start Analyzing button */}
         <TouchableOpacity
-          style={styles.snapshotButton}
-          onPress={onSnapshot}
+          style={styles.startAnalyzingButton}
+          onPress={onStartAnalyzing}
           activeOpacity={0.7}
         >
-          <Text style={styles.snapshotText}>SNAPSHOT</Text>
+          <Text style={styles.startAnalyzingText}>START ANALYZING</Text>
         </TouchableOpacity>
 
-        {/* Finalize Mix button */}
+        {/* Reset button */}
         <TouchableOpacity
-          style={styles.finalizeButton}
-          onPress={onFinalizeMix}
+          style={styles.resetButton}
+          onPress={onResetEQ}
           activeOpacity={0.8}
         >
-          <Text style={styles.finalizeText}>FINALIZE MIX</Text>
+          <Text style={styles.resetText}>RESET</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -69,9 +69,9 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
-    height: 60,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    height: 44,
   },
   analyzeButton: {
     flexDirection: 'row',
@@ -79,19 +79,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.purple,
     borderRadius: radii.lg,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
-    minWidth: 180,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    minWidth: 150,
   },
   analyzeIcon: {
-    fontSize: 14,
-    marginRight: spacing.sm,
+    fontSize: 12,
+    marginRight: spacing.xs,
   },
   analyzeText: {
     color: colors.textPrimary,
-    fontSize: typography.sm,
+    fontSize: typography.xs,
     fontWeight: typography.bold,
-    letterSpacing: 1.5,
+    letterSpacing: 1,
   },
   spacer: {
     flex: 1,
@@ -99,32 +99,32 @@ const styles = StyleSheet.create({
   rightSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.lg,
+    gap: spacing.md,
   },
-  snapshotButton: {
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
+  startAnalyzingButton: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
     borderRadius: radii.md,
     borderWidth: 1.5,
     borderColor: colors.border,
     backgroundColor: colors.surface,
   },
-  snapshotText: {
+  startAnalyzingText: {
     color: colors.textSecondary,
-    fontSize: typography.sm,
+    fontSize: typography.xs,
     fontWeight: typography.bold,
-    letterSpacing: 1.5,
+    letterSpacing: 1,
   },
-  finalizeButton: {
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
+  resetButton: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
     borderRadius: radii.md,
     backgroundColor: colors.purple,
   },
-  finalizeText: {
+  resetText: {
     color: colors.textPrimary,
-    fontSize: typography.sm,
+    fontSize: typography.xs,
     fontWeight: typography.bold,
-    letterSpacing: 1.5,
+    letterSpacing: 1,
   },
 });

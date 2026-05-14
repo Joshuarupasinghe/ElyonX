@@ -25,9 +25,9 @@ export const MasterFader: React.FC<MasterFaderProps> = ({
           value={value}
           min={-60}
           max={6}
-          height={140}
-          width={10}
+          width={8}
           showValue={true}
+          fillContainer
           color={colors.purple}
           onValueChange={onValueChange}
         />
@@ -43,7 +43,7 @@ export const MasterFader: React.FC<MasterFaderProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    width: 100,
+    width: 90,
     height: '100%',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -52,21 +52,21 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
     borderWidth: 1,
     borderColor: colors.purple,
-    marginLeft: spacing.lg,
+    marginLeft: spacing.md,
   },
   panIndicator: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.xs,
+    marginBottom: spacing.xxs,
   },
   panLine: {
     width: 1,
-    height: 10,
+    height: 8,
     backgroundColor: colors.textMuted,
   },
   faderContainer: {
@@ -75,19 +75,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   labelContainer: {
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xxs,
+    paddingHorizontal: spacing.sm,
     borderRadius: radii.sm,
-    marginTop: spacing.xs,
+    marginTop: spacing.xxs,
     backgroundColor: colors.surfaceElevated,
     borderWidth: 1,
     borderColor: colors.purple,
   },
   label: {
     color: colors.purple,
-    fontSize: typography.xs,
+    fontSize: 7,
     fontWeight: typography.bold,
     textAlign: 'center',
-    letterSpacing: 1,
+    letterSpacing: 0.5,
   },
 });
