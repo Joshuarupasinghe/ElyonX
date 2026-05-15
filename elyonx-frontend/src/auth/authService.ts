@@ -43,6 +43,10 @@ interface AuthResponse {
   user: AuthUser;
 }
 
+interface AuthSessionOptions {
+  persist?: boolean;
+}
+
 async function getAuthErrorMessage(response: Response): Promise<string> {
   try {
     const body = (await response.clone().json()) as Record<string, unknown>;
@@ -70,6 +74,7 @@ async function getAuthErrorMessage(response: Response): Promise<string> {
 async function submitAuthRequest(
   endpoint: '/auth/login' | '/auth/signup',
   body: Record<string, string>,
+  sessionOptions: AuthSessionOptions = {},
 ): Promise<AuthUser> {
   const response = await fetch(`${BACKEND_URL}${endpoint}`, {
     method: 'POST',
@@ -84,17 +89,22 @@ async function submitAuthRequest(
   }
 
   const authResponse = (await response.json()) as AuthResponse;
-  setToken(authResponse.access_token, authResponse.expires_in);
+  setToken(
+    authResponse.access_token,
+    authResponse.expires_in,
+    sessionOptions.persist ?? true,
+  );
   return authResponse.user;
 }
 
 export async function loginWithEmail(
   payload: EmailLoginPayload,
+  sessionOptions?: AuthSessionOptions,
 ): Promise<AuthUser> {
   return submitAuthRequest('/auth/login', {
     email: payload.email.trim().toLowerCase(),
     password: payload.password,
-  });
+  }, sessionOptions);
 }
 
 export async function signUpWithEmail(

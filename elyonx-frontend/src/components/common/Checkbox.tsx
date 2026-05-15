@@ -11,6 +11,9 @@ interface CheckboxProps {
 export const Checkbox: React.FC<CheckboxProps> = ({ label, checked, onToggle }) => {
   return (
     <TouchableOpacity
+      accessibilityRole="checkbox"
+      accessibilityLabel={label}
+      accessibilityState={{ checked }}
       style={styles.container}
       onPress={() => onToggle(!checked)}
       activeOpacity={0.7}

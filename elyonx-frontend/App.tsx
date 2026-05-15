@@ -118,12 +118,19 @@ const App: React.FC = () => {
 
   // ── Auth handlers ─────────────────────────────────────────────────
 
-  const handleLogin = useCallback(async (email: string, password: string) => {
+  const handleLogin = useCallback(async (
+    email: string,
+    password: string,
+    rememberSession = true,
+  ) => {
     setAuthSubmitting(true);
     setAuthError(null);
 
     try {
-      const user = await loginWithEmail({ email, password });
+      const user = await loginWithEmail(
+        { email, password },
+        { persist: rememberSession },
+      );
       setCurrentUser(user);
       setCurrentScreen('mixer');
     } catch (err: any) {

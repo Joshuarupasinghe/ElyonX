@@ -12,7 +12,11 @@ describe('LoginScreen', () => {
   });
 
   it('does not submit until email and password are present', () => {
-    const onLogin = jest.fn<(email: string, password: string) => void>();
+    const onLogin = jest.fn((
+      email: string,
+      password: string,
+      rememberSession: boolean,
+    ) => undefined);
     render(
       <LoginScreen
         onLogin={onLogin}
@@ -28,7 +32,11 @@ describe('LoginScreen', () => {
   });
 
   it('submits trimmed credentials', () => {
-    const onLogin = jest.fn<(email: string, password: string) => void>();
+    const onLogin = jest.fn((
+      email: string,
+      password: string,
+      rememberSession: boolean,
+    ) => undefined);
     render(
       <LoginScreen
         onLogin={onLogin}
@@ -41,7 +49,29 @@ describe('LoginScreen', () => {
     fireEvent.changeText(screen.getByLabelText('Password'), 'showtime');
     fireEvent.press(screen.getByLabelText('Login'));
 
-    expect(onLogin).toHaveBeenCalledWith('foh@elyonx.com', 'showtime');
+    expect(onLogin).toHaveBeenCalledWith('foh@elyonx.com', 'showtime', true);
+  });
+
+  it('submits without persistence when remember me is off', () => {
+    const onLogin = jest.fn((
+      email: string,
+      password: string,
+      rememberSession: boolean,
+    ) => undefined);
+    render(
+      <LoginScreen
+        onLogin={onLogin}
+        onNavigateToSignUp={noop}
+        onGoogleSignIn={noop}
+      />,
+    );
+
+    fireEvent.press(screen.getByLabelText('Remember Me'));
+    fireEvent.changeText(screen.getByLabelText('Email address'), 'foh@elyonx.com');
+    fireEvent.changeText(screen.getByLabelText('Password'), 'showtime');
+    fireEvent.press(screen.getByLabelText('Login'));
+
+    expect(onLogin).toHaveBeenCalledWith('foh@elyonx.com', 'showtime', false);
   });
 
   it('routes secondary auth actions', () => {

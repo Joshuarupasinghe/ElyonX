@@ -34,6 +34,7 @@ def test_signup_uses_isolated_test_database(client: TestClient, monkeypatch) -> 
     assert response.status_code == 201
     payload = response.json()
     assert payload["token_type"] == "bearer"
+    assert payload["expires_in"] == 7 * 24 * 60 * 60
     assert payload["user"]["email"] == "foh@elyonx.com"
     assert payload["user"]["name"] == "FOH Engineer"
 

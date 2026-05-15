@@ -108,7 +108,7 @@ class Settings(BaseSettings):
     # ── JWT Authentication ────────────────────────────────────────
     JWT_SECRET_KEY: str = "8e668078a29bcb10e60e948e37075d6f4bf6758d98b5811c9c85d037fc668432"
     JWT_ALGORITHM: str = "HS256"
-    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440   # 24 hours
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 7 * 24 * 60   # 7 days
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 30
 
     # ── Frontend Redirect (React Native Windows deep-link) ───────

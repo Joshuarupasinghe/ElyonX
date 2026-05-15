@@ -24,6 +24,9 @@
     <ClInclude Include="ElyonXFrontend.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="AuthStorageModule.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="AutolinkedNativeModules.g.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -33,6 +36,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ElyonXFrontend.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="AuthStorageModule.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="AutolinkedNativeModules.g.cpp">

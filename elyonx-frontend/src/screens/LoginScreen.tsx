@@ -13,7 +13,11 @@ import { colors, typography } from '../theme/theme';
 import { Checkbox } from '../components/common/Checkbox';
 
 interface LoginScreenProps {
-  onLogin: (email: string, password: string) => void | Promise<void>;
+  onLogin: (
+    email: string,
+    password: string,
+    rememberSession: boolean,
+  ) => void | Promise<void>;
   onNavigateToSignUp: () => void;
   onGoogleSignIn?: () => void;
   errorMessage?: string | null;
@@ -144,7 +148,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
 }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
@@ -153,8 +157,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
 
   const handleLogin = useCallback(() => {
     if (!canSubmit) return;
-    onLogin(email.trim(), password);
-  }, [canSubmit, email, password, onLogin]);
+    onLogin(email.trim(), password, rememberMe);
+  }, [canSubmit, email, password, rememberMe, onLogin]);
 
   return (
     <View style={styles.screenContainer}>
