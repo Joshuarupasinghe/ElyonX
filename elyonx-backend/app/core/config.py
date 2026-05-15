@@ -3,8 +3,15 @@ from typing import Any, List, Optional
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+_BACKEND_ROOT = Path(__file__).resolve().parents[2]
+_PROJECT_ROOT = _BACKEND_ROOT.parent
+
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=_BACKEND_ROOT / ".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
     APP_NAME: str = "ElyonX Backend"
     APP_VERSION: str = "1.0.0"
@@ -88,18 +95,18 @@ class Settings(BaseSettings):
     MIDI_PORT_NAME: str = ""
     EQ_BAND_MODE: int = 4
 
-    GOOGLE_CLIENT_ID: str = "625392865775-jbd3cibuptnmlgsfem364vuq484pkitn.apps.googleusercontent.com"
-    GOOGLE_CLIENT_SECRET: str = "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"
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
     GOOGLE_REDIRECT_URI: str = "http://localhost:8000/auth/google/callback"
 
-    JWT_SECRET_KEY: str = "8e668078a29bcb10e60e948e37075d6f4bf6758d98b5811c9c85d037fc668432"
+    JWT_SECRET_KEY: str = ""
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 7 * 24 * 60   # 7 days
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 30
 
     FRONTEND_REDIRECT_URI: str = "elyonx://auth/callback"
 
-    OAUTH_STATE_SECRET: str = "CHANGE_ME_state_signing_secret"
+    OAUTH_STATE_SECRET: str = ""
 
 settings = Settings()
     

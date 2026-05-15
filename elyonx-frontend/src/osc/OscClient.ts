@@ -5,7 +5,7 @@ type MessageHandler = (event: MixerEvent) => void;
 
 export class OscClient {
   private adapter: MixerAdapter;
-  private host: string = '192.168.1.1';
+  private host: string = process.env.EXPO_PUBLIC_OSC_TARGET_IP ?? '192.168.1.1';
   private sendPort: number;
   private receivePort: number;
   private handlers: MessageHandler[] = [];

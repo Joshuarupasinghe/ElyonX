@@ -3,6 +3,8 @@ const {getDefaultConfig, mergeConfig} = require('@react-native/metro-config');
 const fs = require('fs');
 const path = require('node:path');
 
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
+
 const rnwPath = fs.realpathSync(
   path.resolve(require.resolve('react-native-windows/package.json'), '..'),
 );
