@@ -1,5 +1,12 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet, StatusBar, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  StatusBar,
+  Alert,
+  TouchableOpacity,
+} from 'react-native';
 import { TopBar } from '../components/GlobalControls/TopBar';
 import { BottomBar } from '../components/GlobalControls/BottomBar';
 import { ChannelList } from '../components/ChannelSelection/ChannelList';
@@ -25,7 +32,8 @@ import {
   setMixerChannelSolo,
   setMixerMasterFader,
 } from '../api/backend';
-import { colors } from '../theme/theme';
+import { formatFrequency, formatGain, formatQ } from '../utils/eqMath';
+import { colors, radii, spacing, typography } from '../theme/theme';
 
 interface MixerScreenProps {
   currentUser?: AuthUser | null;
@@ -46,6 +54,20 @@ type AnalysisNotice = {
   messages: string[];
   meta?: string;
 };
+
+type SuggestedEQSummary = {
+  channelId: string;
+  channelName: string;
+  bands: EQBand[];
+};
+
+const SUMMARY_BAND_COLORS = [
+  colors.eqBand1,
+  colors.eqBand2,
+  colors.eqBand3,
+  colors.eqBand4,
+  colors.eqBand5,
+];
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -88,6 +110,15 @@ function errorNotice(message: string): AnalysisNotice {
   };
 }
 
+function shapeRecommendedBands(bands: EQBand[]): EQBand[] {
+  return [...bands]
+    .sort((a, b) => a.id - b.id)
+    .map((band, index) => ({
+      ...band,
+      id: index + 1,
+    }));
+}
+
 function areBandArraysStable(
   prevBands: EQBand[],
   nextBands: EQBand[]
@@ -128,12 +159,7 @@ function applyRecommendationToChannel(
   recommendation: EQRecommendation
 ): Channel {
   // The model outputs authoritative EQ values; replace channel bands directly.
-  const recommendedBands = [...recommendation.bands]
-    .sort((a, b) => a.id - b.id)
-    .map((band, index) => ({
-      ...band,
-      id: index + 1,
-    }));
+  const recommendedBands = shapeRecommendedBands(recommendation.bands);
 
   return {
     ...channel,
@@ -165,6 +191,9 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
   const [analysisNotice, setAnalysisNotice] = useState<AnalysisNotice | null>(
     null
   );
+  const [suggestedEQSummary, setSuggestedEQSummary] =
+    useState<SuggestedEQSummary | null>(null);
+  const [showSuggestedEQSummary, setShowSuggestedEQSummary] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [mixerStatus, setMixerStatus] = useState<MixerStatus | null>(null);
 
@@ -173,6 +202,11 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
 
   // Selected channel
   const selectedChannel = channels.find((c) => c.id === selectedChannelId);
+
+  const clearSuggestedEQSummary = useCallback(() => {
+    setSuggestedEQSummary(null);
+    setShowSuggestedEQSummary(false);
+  }, []);
 
   const refreshMixerStatus = useCallback(async () => {
     try {
@@ -249,7 +283,8 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
   const handleSelectChannel = useCallback((channelId: string) => {
     setSelectedChannelId(channelId);
     setAnalysisNotice(null);
-  }, []);
+    clearSuggestedEQSummary();
+  }, [clearSuggestedEQSummary]);
 
   const handleToggleMute = useCallback((channelId: string) => {
     const target = channels.find((channel) => channel.id === channelId);
@@ -288,6 +323,7 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
     // Auto-select the newly added channel
     setSelectedChannelId(channel.id);
     setAnalysisNotice(null);
+    clearSuggestedEQSummary();
     void registerMixerChannel({
       channel: channel.index,
       name: channel.name,
@@ -299,7 +335,7 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
         console.warn('[ElyonX] Mixer channel registration failed:', err);
         await refreshMixerStatus();
       });
-  }, [refreshMixerStatus]);
+  }, [refreshMixerStatus, clearSuggestedEQSummary]);
 
   const handleRemoveChannel = useCallback((channelId: string) => {
     const nextChannels = channels.filter((channel) => channel.id !== channelId);
@@ -314,8 +350,9 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
       setSelectedChannelId(nextChannels[0]?.id ?? null);
       setAnalysisNotice(null);
       setOverallEQGain(0);
+      clearSuggestedEQSummary();
     }
-  }, [channels, selectedChannelId]);
+  }, [channels, selectedChannelId, clearSuggestedEQSummary]);
 
   const handleMasterFaderChange = useCallback((db: number) => {
     setMasterFader(db);
@@ -426,6 +463,7 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
       } else {
         await stopCapture();
         setAnalysisNotice(null);
+        clearSuggestedEQSummary();
       }
       setAiAssistEnabled(enabled);
     } catch (err) {
@@ -439,7 +477,7 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
     } finally {
       setAiAssistLoading(false);
     }
-  }, []);
+  }, [clearSuggestedEQSummary]);
 
   const runAnalyzeUntilStable = useCallback(
     async (
@@ -524,6 +562,7 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
       }
 
       setAnalysisNotice(noticeFromRecommendation(response));
+      const responseIsUsable = !response.quality || response.quality.usable;
 
       setChannels((prev) =>
         prev.map((ch) => {
@@ -531,9 +570,22 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
           return applyRecommendationToChannel(ch, response);
         })
       );
+
+      if (responseIsUsable && response.bands.length > 0) {
+        setSuggestedEQSummary({
+          channelId: selectedChannel.id,
+          channelName: selectedChannel.name,
+          bands: shapeRecommendedBands(response.bands),
+        });
+        setShowSuggestedEQSummary(false);
+      } else {
+        clearSuggestedEQSummary();
+      }
+
       pushEQBandsToMixer(selectedChannel.index, response.bands);
     } catch (err) {
       console.error('[ElyonX] Analysis failed:', err);
+      clearSuggestedEQSummary();
       setAnalysisNotice(
         errorNotice('Failed to analyze channel. Please check the backend.')
       );
@@ -551,6 +603,7 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
     isAnalyzing,
     runAnalyzeUntilStable,
     pushEQBandsToMixer,
+    clearSuggestedEQSummary,
   ]);
 
   // Start Analyzing runs analysis only after AI Assist capture is ready.
@@ -579,6 +632,7 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
       // Call backend reset endpoint
       await resetEQ();
       setAnalysisNotice(null);
+      clearSuggestedEQSummary();
 
       // Update frontend state
       setChannels((prev) =>
@@ -607,7 +661,7 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
       setAnalysisNotice(errorNotice('Failed to reset EQ. Please try again.'));
       Alert.alert('Reset Error', 'Failed to reset EQ. Please try again.');
     }
-  }, [selectedChannel, sendMixerCommand]);
+  }, [selectedChannel, sendMixerCommand, clearSuggestedEQSummary]);
 
   return (
     <View style={styles.container}>
@@ -675,6 +729,88 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
                       {message}
                     </Text>
                   ))}
+                </View>
+              )}
+
+              {/* Suggested EQ summary is shown after a usable analysis result */}
+              {suggestedEQSummary && (
+                <View style={styles.eqSummaryPanel}>
+                  <View style={styles.eqSummaryHeader}>
+                    <View>
+                      <Text style={styles.eqSummaryTitle}>SUGGESTED EQS</Text>
+                      <Text style={styles.eqSummaryMeta}>
+                        {suggestedEQSummary.channelName}{'  '}
+                        {suggestedEQSummary.bands.length} bands ready
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={[
+                        styles.eqSummaryToggle,
+                        showSuggestedEQSummary &&
+                          styles.eqSummaryToggleActive,
+                      ]}
+                      onPress={() =>
+                        setShowSuggestedEQSummary((visible) => !visible)
+                      }
+                      activeOpacity={0.75}
+                      accessibilityRole="button"
+                      accessibilityState={{ expanded: showSuggestedEQSummary }}
+                    >
+                      <Text style={styles.eqSummaryToggleText}>
+                        {showSuggestedEQSummary
+                          ? 'HIDE SUMMARY'
+                          : 'SHOW SUMMARY'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {showSuggestedEQSummary && (
+                    <View style={styles.eqSummaryTable}>
+                      <View style={styles.eqSummaryTableHeader}>
+                        <Text style={styles.eqSummaryHeadCell}>
+                          BAND
+                        </Text>
+                        <Text style={styles.eqSummaryHeadCell}>FREQUENCY</Text>
+                        <Text style={styles.eqSummaryHeadCell}>dB</Text>
+                        <Text style={styles.eqSummaryHeadCell}>Q</Text>
+                      </View>
+                      {suggestedEQSummary.bands.map((band, index) => (
+                        <View
+                          key={`${suggestedEQSummary.channelId}-${band.id}`}
+                          style={[
+                            styles.eqSummaryRow,
+                            !band.enabled && styles.eqSummaryRowDisabled,
+                          ]}
+                        >
+                          <View style={styles.eqSummaryBandCell}>
+                            <View
+                              style={[
+                                styles.eqSummaryBandDot,
+                                {
+                                  backgroundColor:
+                                    SUMMARY_BAND_COLORS[
+                                      index % SUMMARY_BAND_COLORS.length
+                                    ],
+                                },
+                              ]}
+                            />
+                            <Text style={styles.eqSummaryBandLabel}>
+                              B{index + 1}
+                            </Text>
+                          </View>
+                          <Text style={styles.eqSummaryValue}>
+                            {formatFrequency(band.frequency)} Hz
+                          </Text>
+                          <Text style={styles.eqSummaryValue}>
+                            {formatGain(band.gain)}
+                          </Text>
+                          <Text style={styles.eqSummaryValue}>
+                            {formatQ(band.q)}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
                 </View>
               )}
 
@@ -782,6 +918,106 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontSize: 11,
     lineHeight: 15,
+  },
+  eqSummaryPanel: {
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    borderRadius: radii.md,
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    gap: spacing.sm,
+  },
+  eqSummaryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  eqSummaryTitle: {
+    color: colors.textSecondary,
+    fontSize: typography.xs,
+    fontWeight: typography.semiBold,
+    letterSpacing: 2,
+  },
+  eqSummaryMeta: {
+    color: colors.textMuted,
+    fontSize: typography.xs,
+    fontWeight: typography.medium,
+    marginTop: spacing.xxs,
+  },
+  eqSummaryToggle: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 118,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.purple,
+    backgroundColor: colors.purpleBg,
+  },
+  eqSummaryToggleActive: {
+    borderColor: colors.cyan,
+    backgroundColor: colors.greenDim,
+  },
+  eqSummaryToggleText: {
+    color: colors.textPrimary,
+    fontSize: typography.xs,
+    fontWeight: typography.bold,
+    letterSpacing: 1,
+  },
+  eqSummaryTable: {
+    borderTopWidth: 1,
+    borderTopColor: colors.borderSubtle,
+    paddingTop: spacing.xs,
+    gap: spacing.xs,
+  },
+  eqSummaryTableHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.xs,
+  },
+  eqSummaryHeadCell: {
+    flex: 1,
+    color: colors.textDim,
+    fontSize: 8,
+    fontWeight: typography.bold,
+    letterSpacing: 1,
+  },
+  eqSummaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 28,
+    paddingHorizontal: spacing.xs,
+    borderRadius: radii.sm,
+    backgroundColor: colors.surfaceElevated,
+  },
+  eqSummaryRowDisabled: {
+    opacity: 0.55,
+  },
+  eqSummaryBandCell: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  eqSummaryBandDot: {
+    width: 7,
+    height: 7,
+    borderRadius: radii.round,
+  },
+  eqSummaryBandLabel: {
+    color: colors.textPrimary,
+    fontSize: typography.sm,
+    fontWeight: typography.bold,
+    letterSpacing: 1,
+  },
+  eqSummaryValue: {
+    flex: 1,
+    color: colors.textPrimary,
+    fontSize: typography.sm,
+    fontWeight: typography.semiBold,
   },
   eqSection: {
     flex: 3,
