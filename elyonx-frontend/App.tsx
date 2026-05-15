@@ -36,7 +36,6 @@ const App: React.FC = () => {
   const [authSubmitting, setAuthSubmitting] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
-  // ── Check existing authentication on mount ────────────────────────
   useEffect(() => {
     (async () => {
       try {
@@ -47,18 +46,14 @@ const App: React.FC = () => {
         }
       } catch (err) {
         console.warn('[ElyonX] Session restore failed:', err);
-        // Token was invalid/expired — stay on login
       } finally {
         setAuthLoading(false);
       }
     })();
   }, []);
 
-  // ── Handle OAuth callback URL (web: on page load, native: deep link) ──
   useEffect(() => {
     const processCallbackUrl = async (url: string) => {
-      // Only handle URLs that contain our auth callback path
-      // Supports both web format (http://localhost:3000/auth/callback) and deep links (elyonx://auth/callback)
       if (!url.includes('/auth/callback') && !url.includes('auth/callback')) return;
 
       console.log('[ElyonX] Processing auth callback URL:', url);
@@ -76,31 +71,26 @@ const App: React.FC = () => {
       } catch (err: any) {
         console.error('[ElyonX] Auth callback error:', err.message);
         setAuthError(err.message || 'Authentication failed. Please try again.');
-        // Stay on login screen, user can retry
       } finally {
         setAuthLoading(false);
       }
     };
 
     if (Platform.OS === 'web') {
-      // Check current URL for auth callback params (web)
       const currentUrl = window.location.href;
       if (currentUrl.includes('/auth/callback')) {
         console.log('[ElyonX] Web callback detected');
         processCallbackUrl(currentUrl);
-        // Clean up the URL (remove token from address bar)
         if (window.history?.replaceState) {
           window.history.replaceState({}, '', '/');
         }
       }
     } else {
-      // Native: listen for deep link URLs (Windows/mobile)
       const handleUrl = (event: { url: string }) => {
         console.log('[ElyonX] Deep link received:', event.url);
         processCallbackUrl(event.url);
       };
 
-      // Check if the app was opened from a deep link
       Linking.getInitialURL().then((url) => {
         if (url) {
           console.log('[ElyonX] Initial URL from deep link:', url);
@@ -110,13 +100,10 @@ const App: React.FC = () => {
         console.warn('[ElyonX] Failed to get initial URL:', err);
       });
 
-      // Listen for subsequent deep links while the app is open
       const subscription = Linking.addEventListener('url', handleUrl);
       return () => subscription.remove();
     }
   }, []);
-
-  // ── Auth handlers ─────────────────────────────────────────────────
 
   const handleLogin = useCallback(async (
     email: string,
@@ -172,8 +159,6 @@ const App: React.FC = () => {
     console.log('[ElyonX] Google sign-in initiated');
     try {
       await loginWithGoogle();
-      // The actual login completion happens in the URL callback handler above.
-      // loginWithGoogle() opens the browser and this function returns immediately.
     } catch (err: any) {
       console.error('[ElyonX] Google sign-in failed:', err.message);
       setAuthError(err.message || 'Google sign-in failed. Please try again.');
@@ -198,10 +183,7 @@ const App: React.FC = () => {
     }
   }, [currentUser]);
 
-  // ── Render ────────────────────────────────────────────────────────
-
   const renderScreen = () => {
-    // Show nothing while checking existing auth
     if (authLoading) return null;
 
     switch (currentScreen) {

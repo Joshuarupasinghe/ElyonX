@@ -1,13 +1,6 @@
-/**
- * ElyonX IMS – Authentication Service
- * Handles Google OAuth login flow, token management, and user profile retrieval.
- */
-
 import { Linking, Platform } from 'react-native';
 import { BACKEND_URL } from '../api/backend';
 import { setToken, getToken, clearToken, isAuthenticated } from './tokenStorage';
-
-// ── Types ─────────────────────────────────────────────────────────────
 
 export interface AuthUser {
   user_id: string;
@@ -117,21 +110,12 @@ export async function signUpWithEmail(
   });
 }
 
-// ── Google OAuth Login ────────────────────────────────────────────────
-
-/**
- * Initiates Google OAuth login by opening the backend's login URL
- * in the system browser. The backend handles the full OAuth flow
- * and redirects back to the app with a JWT.
- */
 export async function loginWithGoogle(): Promise<void> {
   const loginUrl = `${BACKEND_URL}/auth/google/login`;
 
   if (Platform.OS === 'web') {
-    // On web, redirect the current window
     window.location.href = loginUrl;
   } else {
-    // On native (Windows), open in the default system browser
     try {
       const canOpen = await Linking.canOpenURL(loginUrl);
       if (canOpen) {
@@ -147,15 +131,6 @@ export async function loginWithGoogle(): Promise<void> {
   }
 }
 
-// ── Handle Auth Callback ──────────────────────────────────────────────
-
-/**
- * Process the callback parameters after Google OAuth redirect.
- * Extracts the JWT from URL query params and stores it.
- *
- * @returns The authenticated user's profile if login succeeded.
- * @throws Error if authentication failed.
- */
 export async function handleAuthCallback(
   params: AuthCallbackParams,
 ): Promise<AuthUser> {
@@ -167,24 +142,15 @@ export async function handleAuthCallback(
     throw new Error('No authentication token received');
   }
 
-  // Store the JWT
   const expiresIn = params.expires_in ? parseInt(params.expires_in, 10) : undefined;
   setToken(params.token, expiresIn);
 
-  // Fetch the user profile to confirm the token works
   const user = await fetchCurrentUser();
   return user;
 }
 
-// ── Parse Callback URL ────────────────────────────────────────────────
-
-/**
- * Extract auth callback parameters from a URL string.
- * Works for both web URLs and deep-link URLs.
- */
 export function parseAuthCallbackUrl(url: string): AuthCallbackParams {
   try {
-    // Handle both http:// URLs and custom scheme deep links
     const urlObj = new URL(url);
     return {
       token: urlObj.searchParams.get('token') ?? undefined,
@@ -192,7 +158,6 @@ export function parseAuthCallbackUrl(url: string): AuthCallbackParams {
       error: urlObj.searchParams.get('error') ?? undefined,
     };
   } catch {
-    // Fallback: try to extract query string manually
     const queryStart = url.indexOf('?');
     if (queryStart === -1) return {};
 
@@ -212,12 +177,6 @@ export function parseAuthCallbackUrl(url: string): AuthCallbackParams {
   }
 }
 
-// ── Fetch Current User ────────────────────────────────────────────────
-
-/**
- * Call /auth/me with the stored JWT to get the current user profile.
- * Throws if not authenticated or if the token is invalid.
- */
 export async function fetchCurrentUser(): Promise<AuthUser> {
   const token = getToken();
   if (!token) {
@@ -233,7 +192,6 @@ export async function fetchCurrentUser(): Promise<AuthUser> {
   });
 
   if (response.status === 401) {
-    // Token expired or invalid — clear it
     clearToken();
     throw new Error('Session expired. Please log in again.');
   }
@@ -246,16 +204,9 @@ export async function fetchCurrentUser(): Promise<AuthUser> {
   return (await response.json()) as AuthUser;
 }
 
-// ── Logout ────────────────────────────────────────────────────────────
-
-/**
- * Log out the current user.
- * Calls the backend logout endpoint and clears the local token.
- */
 export async function logout(): Promise<void> {
   const token = getToken();
 
-  // Best-effort call to backend logout
   if (token) {
     try {
       await fetch(`${BACKEND_URL}/auth/logout`, {
@@ -266,7 +217,6 @@ export async function logout(): Promise<void> {
         },
       });
     } catch (e) {
-      // Logout should succeed even if the backend call fails
       console.warn('[ElyonX Auth] Backend logout call failed:', e);
     }
   }
@@ -274,5 +224,4 @@ export async function logout(): Promise<void> {
   clearToken();
 }
 
-// ── Re-exports ────────────────────────────────────────────────────────
 export { isAuthenticated, getToken, clearToken };

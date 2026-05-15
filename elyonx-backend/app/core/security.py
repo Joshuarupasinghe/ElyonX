@@ -18,7 +18,6 @@ from jose import JWTError, jwt
 
 from app.core.config import settings
 
-# ── Bearer token extractor (auto-reads Authorization header) ────────
 _bearer_scheme = HTTPBearer(auto_error=False)
 
 _PASSWORD_ALGORITHM = "pbkdf2_sha256"

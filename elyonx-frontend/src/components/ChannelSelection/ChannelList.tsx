@@ -33,7 +33,6 @@ export const ChannelList: React.FC<ChannelListProps> = ({
       >
         {channels.length === 0 && (
           <View style={styles.emptyState}>
-            {/* <Text style={styles.emptyIcon}>🎛️</Text> */}
             <Text style={styles.emptyTitle}>No Channels</Text>
             <Text style={styles.emptySubtitle}>
               Add a channel to start mixing

@@ -20,16 +20,12 @@ from app.core.config import settings
 
 logger = logging.getLogger("elyonx.auth.google")
 
-# ── Google endpoint constants ──────────────────────────────────────────
 GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
 
-# Scopes we request (profile + email)
 GOOGLE_SCOPES = "openid email profile"
 
-
-# ── CSRF State helpers ─────────────────────────────────────────────────
 
 def _sign_state(nonce: str) -> str:
     """Create an HMAC-SHA256 signature for the OAuth state nonce."""
@@ -64,7 +60,6 @@ def verify_oauth_state(state: str, max_age_seconds: int = 600) -> bool:
         raw, sig = parts
         if not hmac.compare_digest(sig, _sign_state(raw)):
             return False
-        # Check timestamp freshness
         _nonce, ts_str = raw.split(".", 1)
         ts = int(ts_str)
         if (time.time() - ts) > max_age_seconds:
@@ -75,8 +70,6 @@ def verify_oauth_state(state: str, max_age_seconds: int = 600) -> bool:
         logger.exception("OAuth state verification failed")
         return False
 
-
-# ── OAuth Flow ─────────────────────────────────────────────────────────
 
 def build_google_auth_url(state: str) -> str:
     """Construct the Google consent-screen redirect URL."""

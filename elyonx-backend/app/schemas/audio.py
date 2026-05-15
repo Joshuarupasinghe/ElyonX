@@ -2,8 +2,6 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 
 
-# Device Schemas 
-
 class AudioDeviceInfo(BaseModel):
     index: int
     name: str
@@ -35,8 +33,6 @@ class DeviceStatusResponse(BaseModel):
     device: Optional[dict]
     stats: dict
 
-
-# RTA / Feature Schemas
 
 class BandEnergy(BaseModel):
     name: str
@@ -83,8 +79,6 @@ class RTAFrame(BaseModel):
     imbalance: ImbalanceIndicators
     feedback: FeedbackInfo
 
-
-# Health
 
 class HealthResponse(BaseModel):
     status: str

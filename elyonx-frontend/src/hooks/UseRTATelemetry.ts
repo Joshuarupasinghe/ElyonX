@@ -92,7 +92,6 @@ export function useRTATelemetry() {
     frame,
     connected,
     streamOnline,
-    // Convenience accessors
     rta: frame?.rta ?? null,
     spl: frame?.spl_dbfs ?? null,
     bands: frame?.bands ?? [],

@@ -21,7 +21,6 @@ const ChannelFaderComponent: React.FC<ChannelFaderProps> = ({
   onToggleSolo,
   onSelect,
 }) => {
-  // Pick display name for the label
   const displayNames: Record<string, string> = {
     'Lead Vocal': 'L VOCAL',
     'Backing Vocal': 'B VOCAL',
@@ -36,14 +35,12 @@ const ChannelFaderComponent: React.FC<ChannelFaderProps> = ({
         isSelected && styles.containerSelected,
       ]}
     >
-      {/* Pan indicator */}
       <View style={styles.panIndicatorContainer}>
         <View style={styles.panIndicator}>
           <View style={styles.panLine} />
         </View>
       </View>
 
-      {/* Mute / Solo buttons */}
       <View style={styles.msRow}>
         <TouchableOpacity
           style={[
@@ -82,7 +79,6 @@ const ChannelFaderComponent: React.FC<ChannelFaderProps> = ({
         </TouchableOpacity>
       </View>
 
-      {/* Fader */}
       <View style={styles.faderContainer}>
         <VerticalFader
           value={channel.faderValue}
@@ -96,7 +92,6 @@ const ChannelFaderComponent: React.FC<ChannelFaderProps> = ({
         />
       </View>
 
-      {/* Channel label */}
       <View
         style={[
           styles.labelContainer,

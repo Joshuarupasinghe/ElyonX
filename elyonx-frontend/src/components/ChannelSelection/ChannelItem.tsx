@@ -28,7 +28,6 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
       onPress={onSelect}
       activeOpacity={0.7}
     >
-      {/* Color indicator bar */}
       <View style={[styles.colorBar, { backgroundColor: channel.color }]} />
 
       <View style={styles.info}>
@@ -48,7 +47,6 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
         </Text>
       </View>
 
-      {/* Speaker icon */}
       <IconButton
         icon={channel.muted ? 'speaker-muted' : 'speaker'}
         size={16}

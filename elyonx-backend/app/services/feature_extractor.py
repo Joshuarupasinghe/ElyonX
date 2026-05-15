@@ -13,59 +13,46 @@ class FeatureExtractor:
     def __init__(self) -> None:
         self._sr = settings.AUDIO_SAMPLE_RATE
         self._fft_size = settings.RTA_FFT_SIZE
-        self._window = np.hanning(self._fft_size).astype(np.float32)  # Hanning window to reduce spectral leakage
+        self._window = np.hanning(self._fft_size).astype(np.float32)
         self._alpha = settings.RTA_SMOOTHING_ALPHA
         
-        # Pre-compute the frequency axis for the one-sided FFT
         self._freqs: np.ndarray = np.fft.rfftfreq(self._fft_size, 1 / self._sr)
         
-        # Pre-compute band masks (boolean arrays indicating which FFT bins belong to each band)
         self._band_masks: List[np.ndarray] = []
         for lo, hi in settings.BAND_DEFINITIONS:
             mask = (self._freqs >= lo) & (self._freqs < hi)
             self._band_masks.append(mask)
         
         n_bins = len(self._freqs)
-        self._smoothed_mag: np.ndarray = np.zeros(n_bins, dtype=np.float32)  # Smoothed magnitude spectrum
+        self._smoothed_mag: np.ndarray = np.zeros(n_bins, dtype=np.float32)
         
-        # RTA frequency axis exposed to the frontend
-        # Downsample to ≤512 bins for WebSocket efficiency
         self._rta_indices = self._logarithmic_indices(n_bins, n_out=512)
         
     def extract(self, audio: np.ndarray) -> dict:
         t0 = time.monotonic()
         
-        # 1. Trim/pad to FFT size
         frame = self._prepare_frame(audio)
         
-        # 2. Windowed FFT to magnitude spectrum
         spectrum = np.abs(np.fft.rfft(np.asarray(frame, dtype=np.float32) * self._window))
-        spectrum = spectrum / (self._fft_size / 2.0)  # Normalize amplitude
+        spectrum = spectrum / (self._fft_size / 2.0)
         
-        # 3. Exponential smoothing
         self._smoothed_mag = (
             self._alpha * self._smoothed_mag 
             + (1 - self._alpha) * spectrum
         )
         
-        # 4. dBF conversion
-        eps = 1e-10  # Avoid log(0)
+        eps = 1e-10
         mag_db = 20.0 * np.log10(np.maximum(self._smoothed_mag, eps))
         
-        # 5. SPL (RMS of time domain frame)
         rms = float(np.sqrt(np.mean(frame**2)))
-        spl_dbfs = float(max(20.0 * np.log10(rms + eps) , settings.SPL_FLOOR_DBFS))  # Floor to avoid -inf  
+        spl_dbfs = float(max(20.0 * np.log10(rms + eps) , settings.SPL_FLOOR_DBFS))
         
-        # 6. Band levels (7 BAND ENERGY)
         bands =  self._compute_band_levels(mag_db)
         
-        # 7. Spectral imbalance indicators
         imbalance = self._compute_imbalance(bands)
         
-        # 8. Feedback risk detection
         feedback_alerts = self._detect_feedback_peaks(mag_db)
         
-        # 9. Downsample Spectrum for RTA display
         rta_magnitudes = mag_db[self._rta_indices].tolist()
         rta_frequencies = self._freqs[self._rta_indices].tolist()
         
@@ -76,22 +63,17 @@ class FeatureExtractor:
             "timestamp_ms": int(time.time() * 1000),
             "processing_time_ms": round(elapsed_ms, 3),
             
-            # Full RTA Spectrum (downsampled for efficiency)
             "rta": {
                 "frequencies": rta_frequencies,
                 "magnitudes_db": rta_magnitudes,
             },
             
-            # Single scalar features
             "spl_dbfs": round(spl_dbfs, 2),
             
-            # Band levels
             "bands": bands,
             
-            # Spectral imbalance indicators
             "imbalance": imbalance,
             
-            # Feedback risk detection
             "feedback": {
                 "alerts": feedback_alerts,
                 "risk_level": self._risk_level(feedback_alerts),
@@ -116,7 +98,7 @@ class FeatureExtractor:
             if mask.any():
                energy = float(np.mean(mag_db[mask]))
             else:
-               energy = settings.SPL_FLOOR_DBFS  # If no bins in this band, report floor level
+               energy = settings.SPL_FLOOR_DBFS
             lo, hi = settings.BAND_DEFINITIONS[i]
             results.append({
                 "name": name,
@@ -131,7 +113,6 @@ class FeatureExtractor:
         Derive tonal imbalance descriptors from 7-band energy.
         These feed the ML decision engine and GUI warning indicators.
         """
-        # Map band names to energies for easy access
         energy_map = {band["name"]: band["energy_db"] for band in bands}
 
         sub_bass_energy = energy_map.get("Sub", -80)
@@ -163,7 +144,7 @@ class FeatureExtractor:
             mag_db,
             height=threshold,
             width=settings.FEEDBACK_PEAK_WIDTH_BINS,
-            prominence=6.0,   # Must stand out by at least 6 dB
+            prominence=6.0,
         )
 
         alerts = []

@@ -50,7 +50,6 @@ export const VerticalFader: React.FC<VerticalFaderProps> = ({
   const rafRef = useRef<number | null>(null);
   const lastCommitTsRef = useRef(0);
 
-  // Dynamic height: if fillContainer, measure parent and fill it; else use height prop
   const [measuredHeight, setMeasuredHeight] = useState(0);
   const thumbHeight = 16;
   const valueDisplayHeight = showValue ? 18 : 0;
@@ -98,7 +97,6 @@ export const VerticalFader: React.FC<VerticalFaderProps> = ({
 
   const dbToY = useCallback(
     (db: number) => {
-      // Map dB to pixel position (top = max, bottom = min)
       const normalized = (db - min) / (max - min);
       return height * (1 - normalized);
     },
@@ -143,7 +141,6 @@ export const VerticalFader: React.FC<VerticalFaderProps> = ({
   const TICK_GAP = 6;
   const TICK_LINE_WIDTH = 4;
 
-  // dB tick marks
   const ticks = useMemo(() => {
     const result: { db: number; y: number }[] = [];
     for (let db = max; db >= min; db -= 6) {
@@ -178,18 +175,14 @@ export const VerticalFader: React.FC<VerticalFaderProps> = ({
       onResponderRelease={flushDragValue}
       onResponderTerminate={flushDragValue}
     >
-      {/* dB value display */}
       {showValue && (
         <Text style={[styles.dbValue, { color: thumbColor }]}>
           {displayValue > min ? displayValue.toFixed(1) : '-∞'}
         </Text>
       )}
 
-      {/* Fader row: track on left, scale labels on right */}
       <View style={[styles.faderRow, { height }]}>
-        {/* Track + thumb area */}
         <View style={[styles.trackArea, { height, width: thumbWidth }]}>
-          {/* Track background */}
           <View
             style={[
               styles.track,
@@ -200,7 +193,6 @@ export const VerticalFader: React.FC<VerticalFaderProps> = ({
               },
             ]}
           >
-            {/* Filled portion */}
             <View
               style={[
                 styles.trackFill,
@@ -213,7 +205,6 @@ export const VerticalFader: React.FC<VerticalFaderProps> = ({
             />
           </View>
 
-          {/* Thumb */}
           <View
             style={[
               styles.thumb,
@@ -231,7 +222,6 @@ export const VerticalFader: React.FC<VerticalFaderProps> = ({
           </View>
         </View>
 
-        {/* Scale: tick lines + labels to the right */}
         <View style={[styles.scaleArea, { height, marginLeft: TICK_GAP }]}>
           {ticks.map(tick => (
             <View

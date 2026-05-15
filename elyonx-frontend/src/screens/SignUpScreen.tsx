@@ -25,8 +25,6 @@ interface SignUpScreenProps {
   isSubmitting?: boolean;
 }
 
-/* ── SVG Icon Components ─────────────────────────────────────── */
-
 const ElyonXLogo: React.FC<{ size?: number }> = ({ size = 48 }) => (
   <View style={[logoStyles.container, { width: size, height: size }]}>
     <Svg width={size * 0.6} height={size * 0.6} viewBox="0 0 24 24">
@@ -168,8 +166,6 @@ const GoogleIcon: React.FC<{ size?: number }> = ({ size = 18 }) => (
   </Svg>
 );
 
-/* ── Sign Up Screen ──────────────────────────────────────────── */
-
 export const SignUpScreen: React.FC<SignUpScreenProps> = ({
   onSignUp,
   onNavigateToLogin,
@@ -185,13 +181,11 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Focus states
   const [nameFocused, setNameFocused] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [confirmFocused, setConfirmFocused] = useState(false);
 
-  // Validation helpers
   const passwordsMatch = password === confirmPassword && confirmPassword.length > 0;
   const passwordStrong = password.length >= 8;
   const canSubmit =
@@ -209,7 +203,6 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
 
   return (
     <View style={styles.screenContainer}>
-      {/* Ambient glow effects */}
       <View style={styles.glowTopLeft} />
       <View style={styles.glowBottomRight} />
 
@@ -219,14 +212,12 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.card}>
-          {/* Logo + Branding */}
           <View style={styles.brandingSection}>
             <ElyonXLogo size={52} />
             <Text style={styles.brandName}>ELYONX</Text>
             <Text style={styles.brandSubtitle}>INTELLIGENT MIXING SYSTEM</Text>
           </View>
 
-          {/* Section Header */}
           <View style={styles.sectionHeader}>
             <View style={styles.accentBar} />
             <Text style={styles.sectionTitle}>CREATE ACCOUNT</Text>
@@ -236,7 +227,6 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
             <Text style={styles.formError}>{errorMessage}</Text>
           ) : null}
 
-          {/* Full Name Input */}
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>FULL NAME</Text>
             <View
@@ -260,7 +250,6 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
             </View>
           </View>
 
-          {/* Email Input */}
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>EMAIL ADDRESS</Text>
             <View
@@ -285,7 +274,6 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
             </View>
           </View>
 
-          {/* Password Input */}
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>CONSOLE PASSWORD</Text>
             <View
@@ -314,7 +302,6 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
                 <EyeIcon size={16} color={colors.textMuted} visible={showPassword} />
               </TouchableOpacity>
             </View>
-            {/* Password strength indicator */}
             {password.length > 0 && (
               <View style={styles.strengthRow}>
                 <View style={styles.strengthBarContainer}>
@@ -352,7 +339,6 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
             )}
           </View>
 
-          {/* Confirm Password Input */}
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>CONFIRM PASSWORD</Text>
             <View
@@ -390,7 +376,6 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
             )}
           </View>
 
-          {/* Terms Checkbox */}
           <View style={styles.termsRow}>
             <Checkbox
               label=""
@@ -405,7 +390,6 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
             </Text>
           </View>
 
-          {/* Sign Up Button */}
           <TouchableOpacity
             style={[
               styles.signUpButton,
@@ -427,14 +411,12 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
             </View>
           </TouchableOpacity>
 
-          {/* OR Divider */}
           <View style={styles.dividerRow}>
             <View style={styles.dividerLine} />
             <Text style={styles.dividerText}>OR</Text>
             <View style={styles.dividerLine} />
           </View>
 
-          {/* Google Sign In */}
           <TouchableOpacity
             style={styles.googleButton}
             onPress={onGoogleSignIn}
@@ -444,7 +426,6 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
             <Text style={styles.googleButtonText}>CONTINUE WITH GOOGLE</Text>
           </TouchableOpacity>
 
-          {/* Login Link */}
           <View style={styles.loginLinkSection}>
             <Text style={styles.existingText}>ALREADY HAVE AN ACCOUNT?</Text>
             <TouchableOpacity onPress={onNavigateToLogin} activeOpacity={0.7}>
@@ -456,8 +437,6 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({
     </View>
   );
 };
-
-/* ── Styles ──────────────────────────────────────────────────── */
 
 const styles = StyleSheet.create({
   screenContainer: {
@@ -506,7 +485,6 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
 
-  /* Branding */
   brandingSection: {
     alignItems: 'center',
     marginBottom: 32,
@@ -526,7 +504,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
 
-  /* Section Header */
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -553,7 +530,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
 
-  /* Input Fields */
   inputGroup: {
     marginBottom: 18,
   },
@@ -593,7 +569,6 @@ const styles = StyleSheet.create({
     padding: 4,
   },
 
-  /* Password Strength */
   strengthRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -616,7 +591,6 @@ const styles = StyleSheet.create({
     fontWeight: typography.medium,
   },
 
-  /* Validation */
   errorText: {
     color: colors.red,
     fontSize: 10,
@@ -630,7 +604,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
 
-  /* Terms */
   termsRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -648,7 +621,6 @@ const styles = StyleSheet.create({
     fontWeight: typography.semiBold,
   },
 
-  /* Sign Up Button */
   signUpButton: {
     borderRadius: 8,
     overflow: 'hidden',
@@ -682,7 +654,6 @@ const styles = StyleSheet.create({
       : {}),
   } as any,
 
-  /* Divider */
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -701,7 +672,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
   },
 
-  /* Google Button */
   googleButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -721,7 +691,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
   },
 
-  /* Login Link */
   loginLinkSection: {
     alignItems: 'center',
   },

@@ -90,5 +90,4 @@ class SessionLogger:
             self._client.close()
 
 
-# Singleton
 session_logger = SessionLogger()

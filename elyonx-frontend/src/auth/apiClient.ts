@@ -1,12 +1,5 @@
-/**
- * ElyonX IMS – Authenticated API Client
- * Wraps fetch with automatic JWT injection for protected endpoints.
- */
-
 import { BACKEND_URL } from '../api/backend';
 import { getToken, clearToken } from './tokenStorage';
-
-// ── Types ─────────────────────────────────────────────────────────────
 
 interface ApiRequestOptions extends Omit<RequestInit, 'headers'> {
   headers?: Record<string, string>;
@@ -17,17 +10,6 @@ interface ApiError {
   message: string;
 }
 
-// ── Authenticated Fetch ───────────────────────────────────────────────
-
-/**
- * Make an authenticated API request.
- * Automatically injects the JWT Bearer token into the Authorization header.
- *
- * @param endpoint - The API path (e.g. "/api/v1/audio/analyze")
- * @param options  - Standard fetch options (method, body, etc.)
- * @returns The parsed JSON response.
- * @throws ApiError if the request fails.
- */
 export async function authFetch<T = any>(
   endpoint: string,
   options: ApiRequestOptions = {},
@@ -52,7 +34,6 @@ export async function authFetch<T = any>(
     headers,
   });
 
-  // Handle 401 Unauthorized — token expired or invalid
   if (response.status === 401) {
     clearToken();
     throw {
@@ -78,15 +59,12 @@ export async function authFetch<T = any>(
     } as ApiError;
   }
 
-  // Handle 204 No Content
   if (response.status === 204) {
     return undefined as unknown as T;
   }
 
   return (await response.json()) as T;
 }
-
-// ── Convenience Methods ───────────────────────────────────────────────
 
 export const api = {
   get: <T = any>(endpoint: string, headers?: Record<string, string>) =>

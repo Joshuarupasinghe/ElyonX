@@ -162,7 +162,6 @@ export const EQPoint: React.FC<EQPointProps> = ({
       onResponderRelease={flushDrag}
       onResponderTerminate={flushDrag}
     >
-      {/* Outer glow when selected */}
       {isSelected && (
         <View
           style={[
@@ -171,7 +170,6 @@ export const EQPoint: React.FC<EQPointProps> = ({
           ]}
         />
       )}
-      {/* Point circle */}
       <View
         style={[
           styles.point,

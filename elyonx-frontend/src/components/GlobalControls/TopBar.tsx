@@ -7,9 +7,7 @@ import type { AuthUser } from '../../auth';
 interface TopBarProps {
   mixerConnected: boolean;
   mixerName?: string;
-  /** Whether the WebSocket to the backend is connected. */
   rtaConnected?: boolean;
-  /** Whether the audio capture stream is active on the backend. */
   rtaStreamOnline?: boolean;
   onSettingsPress?: () => void;
   settingsActive?: boolean;
@@ -31,7 +29,6 @@ export const TopBar: React.FC<TopBarProps> = ({
 }) => {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
 
-  // Determine RTA indicator color: green = live, orange = connected but no stream, red = disconnected
   const rtaColor = rtaConnected
     ? rtaStreamOnline
       ? colors.green
@@ -52,7 +49,6 @@ export const TopBar: React.FC<TopBarProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* Logo */}
       <View style={styles.logoContainer}>
         <View style={styles.logoIcon}>
           <View style={styles.logoCircle} />
@@ -63,18 +59,14 @@ export const TopBar: React.FC<TopBarProps> = ({
         </View>
       </View>
 
-      {/* Spacer */}
       <View style={styles.spacer} />
 
-      {/* Right controls */}
       <View style={styles.rightControls}>
-        {/* RTA status */}
         <View style={styles.statusContainer}>
           <View style={[styles.statusDot, { backgroundColor: rtaColor }]} />
           <Text style={styles.statusText}>{rtaLabel}</Text>
         </View>
 
-        {/* Connection status */}
         <View style={styles.statusContainer}>
           <View
             style={[
@@ -87,7 +79,6 @@ export const TopBar: React.FC<TopBarProps> = ({
           </Text>
         </View>
 
-        {/* Settings */}
         <IconButton
           icon="settings"
           size={20}
@@ -96,7 +87,6 @@ export const TopBar: React.FC<TopBarProps> = ({
           style={settingsActive ? styles.settingsButtonActive : undefined}
         />
 
-        {/* Profile avatar */}
         <View style={styles.profileRoot}>
           <TouchableOpacity
             style={[

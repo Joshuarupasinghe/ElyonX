@@ -1,12 +1,3 @@
-/**
- * ElyonX IMS – Token Storage Utility
- * Provides get/set/clear for the application JWT.
- *
- * Uses in-memory storage plus persistent storage where available:
- * localStorage on web and a native Windows credential module in the
- * React Native Windows app.
- */
-
 import { NativeModules, Platform } from 'react-native';
 
 const TOKEN_STORAGE_KEY = 'elyonx_auth_token';
@@ -25,7 +16,6 @@ type NativeTokenStorage = {
   clearSession: () => boolean;
 };
 
-// In-memory fallback for native platforms
 let _memoryToken: string | null = null;
 let _memoryExpiry: number | null = null;
 
@@ -137,9 +127,6 @@ function clearPersistentSession(): void {
   }
 }
 
-/**
- * Save the JWT token and its expiry timestamp.
- */
 export function setToken(
   token: string,
   expiresIn?: number,
@@ -158,12 +145,7 @@ export function setToken(
   }
 }
 
-/**
- * Retrieve the stored JWT token.
- * Returns null if no token is stored or if the token has expired.
- */
 export function getToken(): string | null {
-  // Try in-memory first
   if (_memoryToken) {
     if (_memoryExpiry && Date.now() > _memoryExpiry) {
       clearToken();
@@ -179,7 +161,6 @@ export function getToken(): string | null {
       return null;
     }
 
-    // Restore to memory
     _memoryToken = session.token;
     _memoryExpiry = session.expiry;
     return session.token;
@@ -188,18 +169,12 @@ export function getToken(): string | null {
   return null;
 }
 
-/**
- * Clear the stored token (logout).
- */
 export function clearToken(): void {
   _memoryToken = null;
   _memoryExpiry = null;
   clearPersistentSession();
 }
 
-/**
- * Check if the user is currently authenticated.
- */
 export function isAuthenticated(): boolean {
   return getToken() !== null;
 }

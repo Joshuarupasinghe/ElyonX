@@ -1,7 +1,3 @@
-/**
- * ElyonX IMS – Auth Module Barrel Export
- */
-
 export {
   loginWithEmail,
   signUpWithEmail,

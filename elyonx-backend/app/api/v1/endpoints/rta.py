@@ -46,7 +46,6 @@ async def rta_websocket(websocket: WebSocket):
     client_id = str(uuid.uuid4())[:8]
     await ws_manager.connect(websocket, client_id)
 
-    # Notify client if audio is not yet capturing
     engine = websocket.app.state.audio_engine
     if not engine.is_running:
         await websocket.send_json({
@@ -58,11 +57,8 @@ async def rta_websocket(websocket: WebSocket):
         })
 
     try:
-        # Keep connection alive; data is pushed via ws_manager.broadcast()
         while True:
-            # We still need to drain incoming frames to detect disconnect
             data = await websocket.receive_text()
-            # Future: handle client messages (e.g., parameter overrides)
             logger.debug("WS[%s] received: %s", client_id, data[:80])
     except WebSocketDisconnect:
         logger.info("WS[%s] cleanly disconnected.", client_id)

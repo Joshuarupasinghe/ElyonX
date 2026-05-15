@@ -1,7 +1,5 @@
-// Instrument types for channel classification
 export type InstrumentType = 'kick' | 'snare' | 'hihat';
 
-// EQ Band filter types
 export type EQBandType = 'bell' | 'lowshelf' | 'highshelf' | 'highpass' | 'lowpass';
 
 export interface EQBand {
@@ -20,7 +18,7 @@ export interface Channel {
   instrument: InstrumentType;
   input: string;        // e.g., "INPUT 01"
   color: string;
-  icon: string;         // Emoji icon for the channel
+  icon: string;
   faderValue: number;   // -60 to +6 dB (display), 0–1 (OSC)
   muted: boolean;
   solo: boolean;
@@ -37,7 +35,6 @@ export interface MixerConnection {
   adapterType: string;
 }
 
-// OSC event types coming from the mixer
 export type MixerEventType =
   | 'fader'
   | 'mute'
@@ -58,7 +55,6 @@ export interface MixerEvent {
   value: number | string | boolean;
 }
 
-// Biquad filter coefficients
 export interface BiquadCoefficients {
   b0: number;
   b1: number;
@@ -68,14 +64,12 @@ export interface BiquadCoefficients {
   a2: number;
 }
 
-// UI local state types
 export interface UIState {
   selectedChannelId: string | null;
   selectedEQBandId: number | null;
   aiAssistEnabled: boolean;
 }
 
-// Default EQ bands for a new channel
 export const DEFAULT_EQ_BANDS: EQBand[] = [
   { id: 1, type: 'bell', frequency: 80, gain: 0, q: 0.7, enabled: true },
   { id: 2, type: 'bell', frequency: 250, gain: 0, q: 0.7, enabled: true },
@@ -138,10 +132,9 @@ export interface RTAFrame {
     alerts: FeedbackAlert[];
     risk_level: "safe" | "warning" | "danger";
   };
-  // Only present when event === 'eq_recommendation'
   instrument?: InstrumentType;
   inference_ms?: number;
-  eq_bands?: EQBand[]; // Note: the backend sends 'bands' inside eq_recommendation, so we might need to handle the overlap carefully, but the backend to_dict() returns { instrument, inference_ms, bands } - we should make sure the payload merging doesn't overwrite RTA bands if we broadcast a raw eq_recommendation without RTA data. Wait, the backend broadcasts just the EQPrediction dictionary which has 'event': 'eq_recommendation', 'instrument', 'inference_ms', 'bands'. This is a completely different message shape from RTAFrame! So let's create a separate interface.
+  eq_bands?: EQBand[];
 }
 
 export interface EQRecommendationMessage {

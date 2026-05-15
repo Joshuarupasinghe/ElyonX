@@ -33,7 +33,6 @@ from app.services.session_logger import session_logger
 
 logger = logging.getLogger("elyonx.audio_engine")
 
-# Ring buffer depth: 10 blocks of headroom
 _RING_DEPTH = 10
 
 
@@ -114,8 +113,6 @@ class AudioEngine:
         self._latest_audio_lock = threading.Lock()
         self._dropped_blocks: int = 0
         self._processed_blocks: int = 0
-
-    #  Public API 
 
     def start(self, device_index: Optional[int] = None) -> dict:
         """
@@ -224,7 +221,6 @@ class AudioEngine:
                 await ws_manager.broadcast(features)
                 await session_logger.log_frame(features)
 
-            # Sleep for remainder of interval (non-blocking)
             elapsed = time.monotonic() - loop_start
             sleep_time = max(0.0, interval - elapsed)
             await asyncio.sleep(sleep_time)
@@ -279,8 +275,6 @@ class AudioEngine:
                 return np.concatenate((window[start:], window[:end])).astype(np.float32)
 
         return None
-
-    # Private 
 
     def _reset_capture_state(self) -> None:
         """Clear buffers and counters so inference never sees stale capture data."""

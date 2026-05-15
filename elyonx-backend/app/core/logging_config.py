@@ -12,7 +12,7 @@ def setup_logging():
         handlers=[
             logging.StreamHandler(sys.stdout)
         ],
-        force=True  # Ensure reconfiguration works in interactive environments
+        force=True
     )
     
     for lib in ["uvicorn", "asyncio", "pydantic"]:

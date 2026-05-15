@@ -104,8 +104,6 @@ def _invalid_credentials() -> HTTPException:
     )
 
 
-# ── GET /auth/google/login ─────────────────────────────────────────────
-
 @router.get(
     "/google/login",
     summary="Start Google OAuth login",
@@ -128,8 +126,6 @@ async def google_login():
     logger.info("Redirecting to Google OAuth consent screen")
     return RedirectResponse(url=auth_url, status_code=status.HTTP_302_FOUND)
 
-
-# -- POST /auth/signup ------------------------------------------------------
 
 @router.post(
     "/signup",
@@ -158,8 +154,6 @@ async def signup(payload: EmailSignUpRequest):
     return _create_auth_response(user_doc)
 
 
-# -- POST /auth/login -------------------------------------------------------
-
 @router.post(
     "/login",
     summary="Login with email and password",
@@ -182,8 +176,6 @@ async def login(payload: EmailLoginRequest):
     logger.info("Email login successful for: %s", payload.email)
     return _create_auth_response(user_doc)
 
-
-# ── GET /auth/google/callback ─────────────────────────────────────────
 
 @router.get(
     "/google/callback",
@@ -209,7 +201,6 @@ async def google_callback(
     5. Issues an application JWT
     6. Redirects the frontend with the JWT as a query parameter
     """
-    # Handle Google-side errors
     if error:
         logger.warning("Google OAuth error: %s", error)
         redirect_params = urlencode({"error": error})
@@ -218,14 +209,12 @@ async def google_callback(
             status_code=status.HTTP_302_FOUND,
         )
 
-    # Validate required parameters
     if not code or not state:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Missing authorization code or state parameter",
         )
 
-    # Verify CSRF state
     if not verify_oauth_state(state):
         logger.warning("Invalid or expired OAuth state parameter")
         raise HTTPException(
@@ -234,7 +223,6 @@ async def google_callback(
         )
 
     try:
-        # Step 1: Exchange auth code for tokens
         token_data = await exchange_code_for_tokens(code)
         id_token_raw = token_data.get("id_token")
         access_token_google = token_data.get("access_token")
@@ -242,17 +230,14 @@ async def google_callback(
         if not id_token_raw:
             raise ValueError("No ID token returned from Google")
 
-        # Step 2: Verify the Google ID token
         try:
             google_user = verify_google_id_token(id_token_raw)
         except ValueError:
-            # Fallback: use the access token to fetch user info
             if not access_token_google:
                 raise
             logger.warning("ID token verification failed, falling back to userinfo endpoint")
             google_user = await get_google_user_info(access_token_google)
 
-        # Step 3: Extract user information
         google_id = google_user.get("sub")
         email = google_user.get("email")
         name = google_user.get("name", email.split("@")[0] if email else "User")
@@ -263,7 +248,6 @@ async def google_callback(
 
         logger.info("Google auth successful for: %s (%s)", email, google_id)
 
-        # Step 4: Create or update user in database
         user_doc = await create_or_update_user(
             google_id=google_id,
             email=email,
@@ -271,10 +255,8 @@ async def google_callback(
             profile_picture=profile_picture,
         )
 
-        # Step 5: Generate application JWT
         auth_response = _create_auth_response(user_doc)
 
-        # Step 6: Redirect to frontend with token
         redirect_params = urlencode({
             "token": auth_response.access_token,
             "expires_in": str(auth_response.expires_in),
@@ -301,8 +283,6 @@ async def google_callback(
         )
 
 
-# ── GET /auth/me ───────────────────────────────────────────────────────
-
 @router.get(
     "/me",
     summary="Get current user profile",
@@ -321,7 +301,6 @@ async def get_me(current_user: dict = Depends(get_current_user)):
             detail="Invalid token: missing subject",
         )
 
-    # Fetch full user from database
     user_doc = await find_user_by_id(subject)
     if not user_doc:
         user_doc = await find_user_by_google_id(subject)
@@ -344,8 +323,6 @@ async def get_me(current_user: dict = Depends(get_current_user)):
 
     return _to_user_response(user_doc)
 
-
-# ── POST /auth/logout ─────────────────────────────────────────────────
 
 @router.post(
     "/logout",

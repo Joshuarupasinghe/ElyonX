@@ -133,7 +133,6 @@ export const EQBandPopup: React.FC<EQBandPopupProps> = ({
         <View style={styles.dragIndicator} />
       </View>
       <View style={styles.content}>
-        {/* Band type dropdown */}
         <View style={styles.typeSection}>
           <Dropdown
             options={EQ_BAND_TYPE_OPTIONS}
@@ -143,7 +142,6 @@ export const EQBandPopup: React.FC<EQBandPopupProps> = ({
           />
         </View>
 
-        {/* Knobs row */}
         <View style={styles.knobsRow}>
           <RotaryKnob
             value={band.frequency}
@@ -182,7 +180,6 @@ export const EQBandPopup: React.FC<EQBandPopupProps> = ({
           />
         </View>
 
-        {/* Actions */}
         <View style={styles.actions}>
           <IconButton
             icon="power"

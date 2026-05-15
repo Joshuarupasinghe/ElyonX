@@ -18,7 +18,6 @@ interface AddChannelModalProps {
   onAddChannel: (channel: Channel) => void;
 }
 
-// Instrument definitions
 const INSTRUMENTS: {
   type: InstrumentType;
   label: string;
@@ -29,14 +28,12 @@ const INSTRUMENTS: {
   { type: 'hihat', label: 'HiHat', icon: 'hihat' },
 ];
 
-// Map instrument types to image sources
 const ICON_SOURCES: Record<InstrumentType, any> = {
   kick: require('../../../icons/bass-drum.png'),
   snare: require('../../../icons/snare-drum.png'),
   hihat: require('../../../icons/hi-hat.png'),
 };
 
-// Preset color swatches
 const COLOR_PRESETS = [
   { name: 'Purple', value: '#A855F7' },
   { name: 'Orange', value: '#FFAB40' },
@@ -76,7 +73,6 @@ export const AddChannelModal: React.FC<AddChannelModalProps> = ({
       eqEnabled: true,
     };
     onAddChannel(newChannel);
-    // Reset form
     setInstrument('kick');
     setInputChannel('1');
     setSelectedColor(COLOR_PRESETS[0].value);
@@ -92,7 +88,6 @@ export const AddChannelModal: React.FC<AddChannelModalProps> = ({
     >
       <View style={styles.overlay}>
         <View style={styles.modal}>
-          {/* Header */}
           <View style={styles.header}>
             <Text style={styles.headerTitle}>ADD CHANNEL</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -101,7 +96,6 @@ export const AddChannelModal: React.FC<AddChannelModalProps> = ({
           </View>
 
           <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
-            {/* Instrument Selector */}
             <Text style={styles.label}>INSTRUMENT</Text>
             <View style={styles.instrumentRow}>
               {INSTRUMENTS.map(inst => {
@@ -130,14 +124,12 @@ export const AddChannelModal: React.FC<AddChannelModalProps> = ({
               })}
             </View>
 
-            {/* Input Channel Number */}
             <Text style={styles.label}>INPUT CHANNEL</Text>
             <View style={styles.inputRow}>
               <TextInput
                 style={styles.textInput}
                 value={inputChannel}
                 onChangeText={text => {
-                  // Allow only digits
                   const cleaned = text.replace(/[^0-9]/g, '');
                   setInputChannel(cleaned);
                 }}
@@ -149,7 +141,6 @@ export const AddChannelModal: React.FC<AddChannelModalProps> = ({
               <Text style={styles.inputHint}>1 – 32</Text>
             </View>
 
-            {/* Color Picker */}
             <Text style={styles.label}>COLOR</Text>
             <View style={styles.colorRow}>
               {COLOR_PRESETS.map(preset => {
@@ -171,7 +162,6 @@ export const AddChannelModal: React.FC<AddChannelModalProps> = ({
               })}
             </View>
 
-            {/* Preview */}
             <View style={styles.preview}>
               <View style={[styles.previewBar, { backgroundColor: selectedColor }]} />
               <View style={styles.previewInfo}>
@@ -186,7 +176,6 @@ export const AddChannelModal: React.FC<AddChannelModalProps> = ({
             </View>
           </ScrollView>
 
-          {/* Footer buttons */}
           <View style={styles.footer}>
             <TouchableOpacity
               style={styles.cancelButton}

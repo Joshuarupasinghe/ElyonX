@@ -1,8 +1,3 @@
-/**
- * ElyonX IMS – Backend API client
- * Centralises the base URL and provides typed helpers for REST calls.
- */
-
 import {
   EQBand,
   EQBandType,
@@ -86,8 +81,6 @@ function normalizeEQRecommendation(payload: any): EQRecommendation {
     quality: normalizeQuality(payload),
   };
 }
-
-// ── Device / Capture endpoints ────────────────────────────────────────
 
 export interface StartCaptureResponse {
   status: string;
@@ -184,10 +177,6 @@ export interface MixerEQBandPayload {
   enabled?: boolean;
 }
 
-/**
- * POST /api/v1/devices/start
- * Opens the Focusrite audio stream and launches the RTA processing loop.
- */
 export async function startCapture(
   deviceIndex?: number
 ): Promise<StartCaptureResponse> {
@@ -205,10 +194,6 @@ export async function startCapture(
   return (await res.json()) as StartCaptureResponse;
 }
 
-/**
- * POST /api/v1/devices/stop
- * Stops the audio stream and RTA processing loop.
- */
 export async function stopCapture(): Promise<StopCaptureResponse> {
   const res = await fetch(`${BACKEND_URL}/api/v1/devices/stop`, {
     method: 'POST',
@@ -220,10 +205,6 @@ export async function stopCapture(): Promise<StopCaptureResponse> {
   return (await res.json()) as StopCaptureResponse;
 }
 
-/**
- * GET /api/v1/settings
- * Returns mixer endpoint, RTA input, and EQ topology runtime settings.
- */
 export async function fetchRuntimeSettings(): Promise<RuntimeSettings> {
   const res = await fetch(`${BACKEND_URL}/api/v1/settings/`);
   if (!res.ok) {
@@ -233,11 +214,6 @@ export async function fetchRuntimeSettings(): Promise<RuntimeSettings> {
   return (await res.json()) as RuntimeSettings;
 }
 
-/**
- * PATCH /api/v1/settings
- * Hot-updates runtime settings. Audio device/channel changes apply on the next
- * capture start when the stream is already running.
- */
 export async function updateRuntimeSettings(
   payload: UpdateRuntimeSettingsPayload
 ): Promise<RuntimeSettings> {
@@ -399,10 +375,6 @@ export async function setMixerChannelEQBand(
   }
 }
 
-/**
- * POST /api/v1/audio/analyze
- * Analyzes the current RTA audio block for the specified instrument and returns an EQ recommendation.
- */
 export async function analyzeChannel(
   instrument: string
 ): Promise<EQRecommendation> {
@@ -419,10 +391,6 @@ export async function analyzeChannel(
   return normalizeEQRecommendation(payload);
 }
 
-/**
- * POST /api/v1/audio/reset
- * Resets the EQ state and clears cached inference results on the backend.
- */
 export interface ResetEQResponse {
   status: string;
   message: string;

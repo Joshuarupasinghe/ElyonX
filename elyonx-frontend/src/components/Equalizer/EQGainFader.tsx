@@ -124,7 +124,6 @@ export const EQGainFader: React.FC<EQGainFaderProps> = ({
         onResponderRelease={flushDragValue}
         onResponderTerminate={flushDragValue}
       >
-        {/* Tick marks */}
         {TICKS.map(tick => (
           <View
             key={tick}
@@ -139,9 +138,7 @@ export const EQGainFader: React.FC<EQGainFaderProps> = ({
           </View>
         ))}
 
-        {/* Track */}
         <View style={[styles.track, { height }]}>
-          {/* Filled portion (from current to 0dB) */}
           <View
             style={[
               styles.fill,
@@ -154,7 +151,6 @@ export const EQGainFader: React.FC<EQGainFaderProps> = ({
           />
         </View>
 
-        {/* Thumb */}
         <View
           style={[
             styles.thumb,

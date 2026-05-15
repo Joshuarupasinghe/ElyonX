@@ -16,7 +16,6 @@ from app.models.user import UserInDB
 
 logger = logging.getLogger("elyonx.services.user")
 
-# ── MongoDB connection ─────────────────────────────────────────────────
 _client: Optional[AsyncIOMotorClient] = None
 
 
@@ -146,7 +145,6 @@ async def create_or_update_user(
         logger.info("Linked Google login to existing user: %s (%s)", email, google_id)
         return existing_by_email
 
-    # New user
     user = UserInDB(
         google_id=google_id,
         email=normalized_email,

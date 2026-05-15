@@ -158,7 +158,6 @@ function applyRecommendationToChannel(
   channel: Channel,
   recommendation: EQRecommendation
 ): Channel {
-  // The model outputs authoritative EQ values; replace channel bands directly.
   const recommendedBands = shapeRecommendedBands(recommendation.bands);
 
   return {
@@ -173,17 +172,14 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
   onViewAccount,
   onLogout,
 }) => {
-  // Channel state — starts empty, user adds channels via modal
   const [channels, setChannels] = useState<Channel[]>([]);
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(
     null
   );
   const [masterFader, setMasterFader] = useState(0);
 
-  // Add channel modal
   const [showAddChannel, setShowAddChannel] = useState(false);
 
-  // UI state
   const [aiAssistEnabled, setAiAssistEnabled] = useState(false);
   const [_aiAssistLoading, setAiAssistLoading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -197,10 +193,8 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
   const [showSettings, setShowSettings] = useState(false);
   const [mixerStatus, setMixerStatus] = useState<MixerStatus | null>(null);
 
-  // Live RTA telemetry from the backend WebSocket
   const { rta, connected, streamOnline } = useRTATelemetry();
 
-  // Selected channel
   const selectedChannel = channels.find((c) => c.id === selectedChannelId);
 
   const clearSuggestedEQSummary = useCallback(() => {
@@ -279,7 +273,6 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
     [sendMixerCommand]
   );
 
-  // Channel actions
   const handleSelectChannel = useCallback((channelId: string) => {
     setSelectedChannelId(channelId);
     setAnalysisNotice(null);
@@ -320,7 +313,6 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
 
   const handleAddChannel = useCallback((channel: Channel) => {
     setChannels((prev) => [...prev, channel]);
-    // Auto-select the newly added channel
     setSelectedChannelId(channel.id);
     setAnalysisNotice(null);
     clearSuggestedEQSummary();
@@ -370,7 +362,6 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
     );
   }, [selectedChannel, sendMixerCommand]);
 
-  // EQ actions for selected channel
   const handleBandUpdate = useCallback(
     (bandId: number, updates: Partial<EQBand>) => {
       if (!selectedChannelId) return;
@@ -454,7 +445,6 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
     [selectedChannelId, selectedChannel, sendMixerCommand]
   );
 
-  // AI Assist toggle → start / stop audio capture on the backend
   const handleToggleAiAssist = useCallback(async (enabled: boolean) => {
     setAiAssistLoading(true);
     try {
@@ -473,7 +463,6 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
           'AI Assist could not start. Check the backend and audio device.'
         )
       );
-      // Revert — keep the switch in its previous state
     } finally {
       setAiAssistLoading(false);
     }
@@ -519,7 +508,6 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
     []
   );
 
-  // Run IMS analysis for the current channel.
   const runSelectedChannelAnalysis = useCallback(async () => {
     if (!selectedChannel) {
       Alert.alert('No channel selected', 'Please select a channel to analyze.');
@@ -606,7 +594,6 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
     clearSuggestedEQSummary,
   ]);
 
-  // Start Analyzing runs analysis only after AI Assist capture is ready.
   const handleStartAnalyzing = useCallback(async () => {
     if (!aiAssistEnabled) {
       Alert.alert(
@@ -619,7 +606,6 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
     await runSelectedChannelAnalysis();
   }, [aiAssistEnabled, runSelectedChannelAnalysis]);
 
-  // Reset EQ — clears all bands and disables EQ for selected channel
   const handleResetEQ = useCallback(async () => {
     if (!selectedChannel) {
       Alert.alert('No channel selected', 'Please select a channel to reset.');
@@ -629,19 +615,17 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
     try {
       console.log(`[ElyonX] Resetting EQ for ${selectedChannel.name}...`);
 
-      // Call backend reset endpoint
       await resetEQ();
       setAnalysisNotice(null);
       clearSuggestedEQSummary();
 
-      // Update frontend state
       setChannels((prev) =>
         prev.map((ch) => {
           if (ch.id !== selectedChannel.id) return ch;
           return {
             ...ch,
-            eqBands: [], // Clear all bands
-            eqEnabled: false, // Disable EQ
+            eqBands: [],
+            eqEnabled: false,
           };
         })
       );
@@ -667,7 +651,6 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={colors.bg} />
 
-      {/* Top bar — with live RTA connection status */}
       <TopBar
         mixerConnected={Boolean(mixerStatus?.connected)}
         mixerName={mixerStatus?.mixer_name || mixerStatus?.model || 'X32'}
@@ -680,7 +663,6 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
         onLogout={onLogout}
       />
 
-      {/* Main content */}
       <View style={styles.mainContent}>
         {showSettings ? (
           <SettingsPage
@@ -689,7 +671,6 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
           />
         ) : (
           <>
-            {/* Left sidebar: Channel Selection */}
             <View style={styles.sidebar}>
               <ChannelList
                 channels={channels}
@@ -701,7 +682,6 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
               />
             </View>
 
-            {/* Center + Right: EQ + Fader Bank */}
             <View style={styles.centerArea}>
               {analysisNotice && (
                 <View
@@ -732,7 +712,6 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
                 </View>
               )}
 
-              {/* Suggested EQ summary is shown after a usable analysis result */}
               {suggestedEQSummary && (
                 <View style={styles.eqSummaryPanel}>
                   <View style={styles.eqSummaryHeader}>
@@ -814,7 +793,6 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
                 </View>
               )}
 
-              {/* Automatic Equalizer — always show with RTA overlay */}
               <View style={styles.eqSection}>
                 <EQGraph
                   bands={selectedChannel?.eqBands ?? []}
@@ -827,7 +805,6 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
                 />
               </View>
 
-              {/* Fader Bank */}
               <View style={styles.faderSection}>
                 <FaderBank
                   channels={channels}
@@ -845,7 +822,6 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
         )}
       </View>
 
-      {/* Bottom bar */}
       {!showSettings && (
         <BottomBar
           aiAssistEnabled={aiAssistEnabled}
@@ -856,7 +832,6 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
         />
       )}
 
-      {/* Add Channel Modal */}
       <AddChannelModal
         visible={showAddChannel}
         onClose={() => setShowAddChannel(false)}

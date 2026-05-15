@@ -17,8 +17,6 @@ export class BehringerX32Adapter implements MixerAdapter {
     return ch.toString().padStart(2, '0');
   }
 
-  // --- Address builders ---
-
   getFaderAddress(channel: number): string {
     return `/ch/${this.pad(channel)}/mix/fader`;
   }
@@ -59,8 +57,6 @@ export class BehringerX32Adapter implements MixerAdapter {
   getEQOnAddress(channel: number): string {
     return `/ch/${this.pad(channel)}/eq/on`;
   }
-
-  // --- Value conversions ---
 
   /**
    * X32 fader position (0.0–1.0) to dB.
@@ -132,12 +128,9 @@ export class BehringerX32Adapter implements MixerAdapter {
     return 1;
   }
 
-  // --- Message parsing ---
-
   parseMessage(address: string, args: any[]): MixerEvent {
     const value = args.length > 0 ? args[0] : 0;
 
-    // Channel fader: /ch/XX/mix/fader
     const faderMatch = address.match(/^\/ch\/(\d+)\/mix\/fader$/);
     if (faderMatch) {
       return {
@@ -147,7 +140,6 @@ export class BehringerX32Adapter implements MixerAdapter {
       };
     }
 
-    // Master fader
     if (address === '/main/st/mix/fader') {
       return {
         type: 'fader',
@@ -156,7 +148,6 @@ export class BehringerX32Adapter implements MixerAdapter {
       };
     }
 
-    // Mute: /ch/XX/mix/on (0 = muted, 1 = unmuted — inverted!)
     const muteMatch = address.match(/^\/ch\/(\d+)\/mix\/on$/);
     if (muteMatch) {
       return {
@@ -166,7 +157,6 @@ export class BehringerX32Adapter implements MixerAdapter {
       };
     }
 
-    // Solo
     const soloMatch = address.match(/^\/-stat\/solosw\/(\d+)$/);
     if (soloMatch) {
       return {
@@ -176,7 +166,6 @@ export class BehringerX32Adapter implements MixerAdapter {
       };
     }
 
-    // EQ frequency
     const eqFreqMatch = address.match(/^\/ch\/(\d+)\/eq\/(\d+)\/f$/);
     if (eqFreqMatch) {
       return {
@@ -187,7 +176,6 @@ export class BehringerX32Adapter implements MixerAdapter {
       };
     }
 
-    // EQ gain
     const eqGainMatch = address.match(/^\/ch\/(\d+)\/eq\/(\d+)\/g$/);
     if (eqGainMatch) {
       return {
@@ -198,7 +186,6 @@ export class BehringerX32Adapter implements MixerAdapter {
       };
     }
 
-    // EQ Q
     const eqQMatch = address.match(/^\/ch\/(\d+)\/eq\/(\d+)\/q$/);
     if (eqQMatch) {
       return {
@@ -209,7 +196,6 @@ export class BehringerX32Adapter implements MixerAdapter {
       };
     }
 
-    // Channel name
     const nameMatch = address.match(/^\/ch\/(\d+)\/config\/name$/);
     if (nameMatch) {
       return {
@@ -221,8 +207,6 @@ export class BehringerX32Adapter implements MixerAdapter {
 
     return { type: 'unknown', channel: 0, value };
   }
-
-  // --- Subscription messages ---
 
   getSubscribeMessages(): Array<{ address: string; args: any[] }> {
     // X32 requires /xremote to keep receiving updates

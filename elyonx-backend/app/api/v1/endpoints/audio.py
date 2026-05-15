@@ -104,8 +104,6 @@ async def analyze_channel(body: AnalyzeChannelRequest, request: Request):
         from fastapi import HTTPException
         raise HTTPException(status_code=503, detail="IMS model is not loaded.")
 
-    # Grab enough recent audio for transient instruments, then inference will
-    # choose the strongest model-sized slice inside that lookback.
     lookback_samples = max(
         settings.IMS_WINDOW_SIZE,
         int(round(settings.AUDIO_SAMPLE_RATE * settings.IMS_ANALYSIS_LOOKBACK_SECONDS)),
@@ -127,14 +125,12 @@ async def analyze_channel(body: AnalyzeChannelRequest, request: Request):
     payload["bands"] = _shape_eq_bands_for_mode(payload["bands"])
     payload["band_mode"] = 4 if settings.EQ_BAND_MODE == 4 else 6
 
-    # Broadcast the recommendation to all connected WebSocket clients (like frontend RTA overlay)
     from app.core.ws_manager import ws_manager
     ws_payload = {
         "event": "eq_recommendation",
         **payload
     }
     
-    # Broadcast in the background or await it
     import asyncio
     asyncio.create_task(ws_manager.broadcast(ws_payload))
 
@@ -152,7 +148,6 @@ async def reset_eq(request: Request):
         logger.info("[ElyonX] Reset EQ called - clearing cached inference results")
         request.app.state.ims_model.reset_smoothing()
         
-        # Broadcast reset event to all connected WebSocket clients
         from app.core.ws_manager import ws_manager
         ws_payload = {
             "event": "eq_reset",

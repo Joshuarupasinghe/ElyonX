@@ -151,7 +151,6 @@ export const RotaryKnob: React.FC<RotaryKnobProps> = ({
     >
       <View style={[styles.knobShadow, { width: svgSize, height: svgSize }]}>
         <Svg width={svgSize} height={svgSize} viewBox={`0 0 ${svgSize} ${svgSize}`}>
-          {/* Background track */}
           <Path
             d={bgArc}
             fill="none"
@@ -159,7 +158,6 @@ export const RotaryKnob: React.FC<RotaryKnobProps> = ({
             strokeWidth={trackWidth}
             strokeLinecap="round"
           />
-          {/* Value arc */}
           {currentAngle > START_ANGLE && (
             <Path
               d={valueArc}
@@ -169,7 +167,6 @@ export const RotaryKnob: React.FC<RotaryKnobProps> = ({
               strokeLinecap="round"
             />
           )}
-          {/* Center circle (knob body) */}
           <Circle
             cx={center}
             cy={center}
@@ -178,7 +175,6 @@ export const RotaryKnob: React.FC<RotaryKnobProps> = ({
             stroke={colors.border}
             strokeWidth={1}
           />
-          {/* Indicator dot */}
           <Circle
             cx={indicatorPos.x}
             cy={indicatorPos.y}

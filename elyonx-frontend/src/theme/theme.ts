@@ -1,5 +1,4 @@
 export const colors = {
-  // Backgrounds
   bg: '#000000',
   surface: '#000000',
   surfaceElevated: '#2A2A2E',
@@ -7,20 +6,17 @@ export const colors = {
   border: '#3A3A3F',
   borderSubtle: '#2A2A2E',
 
-  // Text
   textPrimary: '#FFFFFF',
   textSecondary: '#A0A0A8',
   textMuted: '#6B6B73',
   textDim: '#4A4A52',
 
-  // Accent – Purple
   purple: '#A855F7',
   purpleLight: '#9B80FF',
   purpleDark: '#5A3DC7',
   purpleGlow: 'rgba(123, 92, 250, 0.25)',
   purpleBg: 'rgba(123, 92, 250, 0.12)',
 
-  // Status
   green: '#00E676',
   greenDim: 'rgba(0, 230, 118, 0.2)',
   red: '#FF5252',
@@ -30,29 +26,24 @@ export const colors = {
   cyan: '#40E0D0',
   yellow: '#FFD740',
 
-  // EQ band colors
   eqBand1: '#FF5252',
   eqBand2: '#B388FF',
   eqBand3: '#7B5CFA',
   eqBand4: '#40E0D0',
   eqBand5: '#00E676',
 
-  // Fader colors
   faderGreen: '#00E676',
   faderYellow: '#FFD740',
   faderOrange: '#FFAB40',
   faderRed: '#FF5252',
 
-  // Transparent
   transparent: 'transparent',
   overlay: 'rgba(0, 0, 0, 0.6)',
 };
 
 export const typography = {
-  // Font family – system default for cross-platform
-  fontFamily: undefined, // Uses system default
+  fontFamily: undefined,
 
-  // Font sizes
   xs: 9,
   sm: 10,
   md: 12,
@@ -61,7 +52,6 @@ export const typography = {
   xxl: 20,
   title: 24,
 
-  // Font weights
   light: '300' as const,
   regular: '400' as const,
   medium: '500' as const,

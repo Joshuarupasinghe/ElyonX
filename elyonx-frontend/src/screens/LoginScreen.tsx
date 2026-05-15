@@ -24,8 +24,6 @@ interface LoginScreenProps {
   isSubmitting?: boolean;
 }
 
-/* ── SVG Icon Components ─────────────────────────────────────── */
-
 const ElyonXLogo: React.FC<{ size?: number }> = ({ size = 48 }) => (
   <View style={[logoStyles.container, { width: size, height: size }]}>
     <Svg width={size * 0.6} height={size * 0.6} viewBox="0 0 24 24">
@@ -137,8 +135,6 @@ const GoogleIcon: React.FC<{ size?: number }> = ({ size = 18 }) => (
   </Svg>
 );
 
-/* ── Login Screen ────────────────────────────────────────────── */
-
 export const LoginScreen: React.FC<LoginScreenProps> = ({
   onLogin,
   onNavigateToSignUp,
@@ -162,7 +158,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
 
   return (
     <View style={styles.screenContainer}>
-      {/* Subtle ambient glow effects */}
       <View style={styles.glowTopLeft} />
       <View style={styles.glowBottomRight} />
 
@@ -172,14 +167,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.card}>
-          {/* Logo + Branding */}
           <View style={styles.brandingSection}>
             <ElyonXLogo size={52} />
             <Text style={styles.brandName} accessibilityLabel="ElyonX">ELYONX</Text>
             <Text style={styles.brandSubtitle}>INTELLIGENT MIXING SYSTEM</Text>
           </View>
 
-          {/* Sign In Header */}
           <View style={styles.sectionHeader}>
             <View style={styles.accentBar} />
             <Text style={styles.sectionTitle}>SIGN IN</Text>
@@ -189,7 +182,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             <Text style={styles.formError}>{errorMessage}</Text>
           ) : null}
 
-          {/* Email Input */}
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>EMAIL ADDRESS</Text>
             <View
@@ -215,7 +207,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             </View>
           </View>
 
-          {/* Password Input */}
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>PASSWORD</Text>
             <View
@@ -249,7 +240,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             </View>
           </View>
 
-          {/* Remember Me + Forgot Password */}
           <View style={styles.optionsRow}>
             <Checkbox
               label="Remember Me"
@@ -261,7 +251,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             </TouchableOpacity>
           </View>
 
-          {/* Login Button */}
           <TouchableOpacity
             accessibilityRole="button"
             accessibilityLabel="Login"
@@ -282,14 +271,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             </View>
           </TouchableOpacity>
 
-          {/* OR Divider */}
           <View style={styles.dividerRow}>
             <View style={styles.dividerLine} />
             <Text style={styles.dividerText}>OR</Text>
             <View style={styles.dividerLine} />
           </View>
 
-          {/* Google Sign In */}
           <TouchableOpacity
             accessibilityRole="button"
             accessibilityLabel="Continue with Google"
@@ -301,7 +288,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             <Text style={styles.googleButtonText}>CONTINUE WITH GOOGLE</Text>
           </TouchableOpacity>
 
-          {/* Create Account Link */}
           <View style={styles.createAccountSection}>
             <Text style={styles.newToText}>NEW TO ELYONX?</Text>
             <TouchableOpacity
@@ -318,8 +304,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     </View>
   );
 };
-
-/* ── Styles ──────────────────────────────────────────────────── */
 
 const styles = StyleSheet.create({
   screenContainer: {
@@ -368,7 +352,6 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
 
-  /* Branding */
   brandingSection: {
     alignItems: 'center',
     marginBottom: 32,
@@ -388,7 +371,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
 
-  /* Section Header */
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -415,7 +397,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
 
-  /* Input Fields */
   inputGroup: {
     marginBottom: 18,
   },
@@ -452,7 +433,6 @@ const styles = StyleSheet.create({
     padding: 4,
   },
 
-  /* Options Row */
   optionsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -467,7 +447,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
 
-  /* Login Button */
   loginButton: {
     borderRadius: 8,
     overflow: 'hidden',
@@ -479,7 +458,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 8,
-    // Simulated gradient via linear gradient on web
     ...(Platform.OS === 'web'
       ? {
           background: 'linear-gradient(135deg, #9B59F7 0%, #C084FC 50%, #A855F7 100%)',
@@ -502,7 +480,6 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
 
-  /* Divider */
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -521,7 +498,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
   },
 
-  /* Google Button */
   googleButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -541,7 +517,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
   },
 
-  /* Create Account */
   createAccountSection: {
     alignItems: 'center',
   },

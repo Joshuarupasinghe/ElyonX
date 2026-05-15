@@ -3,17 +3,11 @@ import { Path, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { freqToX } from '../../utils/eqMath';
 
 interface RTAOverlayProps {
-  /** Frequency axis values from the backend (Hz). */
   frequencies: number[];
-  /** Magnitude values in dBFS from the backend RTA. */
   magnitudes_db: number[];
-  /** SVG viewport width (px). */
   graphWidth: number;
-  /** SVG viewport height (px). */
   graphHeight: number;
-  /** Floor dBFS value drawn at the bottom of the graph. */
   minDb?: number;
-  /** Ceiling dBFS value drawn at the top of the graph. */
   maxDb?: number;
 }
 

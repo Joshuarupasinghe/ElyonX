@@ -17,7 +17,6 @@ interface EQGraphProps {
   onAddBand: () => void;
   onRemoveBand: (bandId: number) => void;
   onOverallGainChange: (db: number) => void;
-  /** Live RTA spectrum data from the backend WebSocket. */
   rtaData?: { frequencies: number[]; magnitudes_db: number[] } | null;
 }
 
@@ -86,9 +85,7 @@ export const EQGraph: React.FC<EQGraphProps> = ({
       <Text style={styles.title}>AUTOMATIC EQUALIZER</Text>
 
       <View style={styles.graphRow}>
-        {/* Main graph area */}
         <View style={styles.graphContainer}>
-          {/* Gain axis labels */}
           <View style={styles.gainAxis}>
             {GAIN_TICKS.map(tick => (
               <Text key={tick} style={styles.gainLabel}>
@@ -98,10 +95,8 @@ export const EQGraph: React.FC<EQGraphProps> = ({
           </View>
 
           <View style={styles.plotArea}>
-            {/* Graph SVG */}
             <View style={styles.svgContainer} onLayout={handleLayout}>
               <Svg width={graphWidth} height={graphHeight}>
-                {/* Horizontal grid (gain) */}
                 {GAIN_TICKS.map(tick => {
                   const y = gainToY(tick, graphHeight, MIN_GAIN, MAX_GAIN);
                   return (
@@ -118,7 +113,6 @@ export const EQGraph: React.FC<EQGraphProps> = ({
                   );
                 })}
 
-                {/* Vertical grid (frequency) */}
                 {FREQ_VALUES.map(freq => {
                   const x = freqToX(freq, graphWidth);
                   return (
@@ -135,7 +129,6 @@ export const EQGraph: React.FC<EQGraphProps> = ({
                   );
                 })}
 
-                {/* Live RTA spectrum overlay (behind EQ curves) */}
                 {rtaData && rtaData.frequencies.length > 0 && (
                   <RTAOverlay
                     frequencies={rtaData.frequencies}
@@ -147,7 +140,6 @@ export const EQGraph: React.FC<EQGraphProps> = ({
                   />
                 )}
 
-                {/* EQ Curve */}
                 <EQCurve
                   bands={bands}
                   graphWidth={graphWidth}
@@ -157,7 +149,6 @@ export const EQGraph: React.FC<EQGraphProps> = ({
                 />
               </Svg>
 
-              {/* Draggable EQ points (overlay on top of SVG) */}
               {bands.map((band, i) => (
                 <EQPoint
                   key={band.id}
@@ -176,7 +167,6 @@ export const EQGraph: React.FC<EQGraphProps> = ({
                 />
               ))}
 
-              {/* Band popup */}
               {selectedBand && (
                 <EQBandPopup
                   band={selectedBand}
@@ -200,7 +190,6 @@ export const EQGraph: React.FC<EQGraphProps> = ({
               )}
             </View>
 
-            {/* Frequency axis labels */}
             <View style={styles.freqAxis}>
               {FREQ_TICKS.map((tick, i) => (
                 <Text
@@ -225,7 +214,6 @@ export const EQGraph: React.FC<EQGraphProps> = ({
           </View>
         </View>
 
-        {/* Overall gain fader */}
         <EQGainFader
           value={overallGain}
           height={graphHeight}

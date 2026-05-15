@@ -14,12 +14,10 @@ export const MasterFader: React.FC<MasterFaderProps> = ({
 }) => {
   return (
     <View style={styles.container}>
-      {/* Pan indicator */}
       <View style={styles.panIndicator}>
         <View style={styles.panLine} />
       </View>
 
-      {/* Fader */}
       <View style={styles.faderContainer}>
         <VerticalFader
           value={value}
@@ -33,7 +31,6 @@ export const MasterFader: React.FC<MasterFaderProps> = ({
         />
       </View>
 
-      {/* Label */}
       <View style={styles.labelContainer}>
         <Text style={styles.label}>MASTER</Text>
       </View>
