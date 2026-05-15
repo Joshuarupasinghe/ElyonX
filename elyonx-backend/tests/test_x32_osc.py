@@ -55,6 +55,26 @@ def test_x32_normalized_value_conversions_match_protocol_ranges() -> None:
 
 
 @pytest.mark.asyncio
+async def test_x32_service_registers_channel_without_connected_mixer() -> None:
+    service = X32OscService(host="192.168.1.50", port=10023)
+
+    status = await service.register_channel(
+        7,
+        name="Snare",
+        instrument="snare",
+        input_source=7,
+    )
+
+    assert status.connected is False
+    assert status.state == "disconnected"
+    assert service._transport is None
+    assert status.registered_channels[0].channel == 7
+    assert status.registered_channels[0].name == "Snare"
+    assert status.registered_channels[0].instrument == "snare"
+    assert status.registered_channels[0].input_source == 7
+
+
+@pytest.mark.asyncio
 async def test_x32_service_sends_expected_channel_commands() -> None:
     service = X32OscService(host="192.168.1.50", port=10023)
     transport = FakeTransport()

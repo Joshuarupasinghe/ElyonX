@@ -424,7 +424,6 @@ class X32OscService:
         if input_source is not None:
             validate_channel(input_source)
 
-        await self.ensure_connected()
         clean_name = name.strip()[:12] if name else None
         self._channels[channel] = RegisteredMixerChannel(
             channel=channel,
@@ -433,13 +432,19 @@ class X32OscService:
             input_source=input_source or channel,
         )
 
-        if clean_name:
-            await self.send(f"/ch/{pad_channel(channel)}/config/name", [clean_name])
+        if self.connected:
+            if clean_name:
+                await self.send(f"/ch/{pad_channel(channel)}/config/name", [clean_name])
 
-        await self.send(f"/ch/{pad_channel(channel)}/mix/fader")
-        await self.send(f"/ch/{pad_channel(channel)}/preamp/trim")
-        for band in range(1, 5):
-            await self.send(f"/ch/{pad_channel(channel)}/eq/{band}")
+            await self.send(f"/ch/{pad_channel(channel)}/mix/fader")
+            await self.send(f"/ch/{pad_channel(channel)}/preamp/trim")
+            for band in range(1, 5):
+                await self.send(f"/ch/{pad_channel(channel)}/eq/{band}")
+        else:
+            logger.info(
+                "Registered channel %s locally; X32 is not connected.",
+                channel,
+            )
 
         await self._broadcast_status()
         return self.status()

@@ -6,7 +6,6 @@ import { RTAOverlay } from './RTAOverlay';
 import { EQPoint } from './EQPoint';
 import { EQBandPopup } from './EQBandPopup';
 import { EQGainFader } from './EQGainFader';
-import { EQOptions } from './EQOptions';
 import { EQBand } from '../../store/types';
 import { freqToX, gainToY } from '../../utils/eqMath';
 import { colors, typography, spacing, radii } from '../../theme/theme';
@@ -51,12 +50,6 @@ export const EQGraph: React.FC<EQGraphProps> = ({
   const [graphDimensions, setGraphDimensions] = useState({ width: 600, height: 380 });
   const [popupPosition, setPopupPosition] = useState({ x: 120, y: 60 });
 
-  // UI display options
-  const [logScaleFreq, setLogScaleFreq] = useState(true);
-  const [showGrid, setShowGrid] = useState(true);
-  const [showPhase, setShowPhase] = useState(false);
-  const [compactMode, setCompactMode] = useState(true);
-
   const { width: graphWidth, height: graphHeight } = graphDimensions;
 
   const handleLayout = (e: LayoutChangeEvent) => {
@@ -99,133 +92,136 @@ export const EQGraph: React.FC<EQGraphProps> = ({
           <View style={styles.gainAxis}>
             {GAIN_TICKS.map(tick => (
               <Text key={tick} style={styles.gainLabel}>
-                {tick >= 0 ? `+${tick}` : tick}
+                {tick >= 0 ? `+${tick}` : tick} dB
               </Text>
             ))}
           </View>
 
-          {/* Graph SVG */}
-          <View style={styles.svgContainer} onLayout={handleLayout}>
-            <Svg width={graphWidth} height={graphHeight}>
-              {/* Grid lines */}
-              {showGrid && (
-                <>
-                  {/* Horizontal grid (gain) */}
-                  {GAIN_TICKS.map(tick => {
-                    const y = gainToY(tick, graphHeight, MIN_GAIN, MAX_GAIN);
-                    return (
-                      <Line
-                        key={`h-${tick}`}
-                        x1={0}
-                        y1={y}
-                        x2={graphWidth}
-                        y2={y}
-                        stroke={tick === 0 ? colors.border : colors.borderSubtle}
-                        strokeWidth={tick === 0 ? 1 : 0.5}
-                        strokeDasharray={tick === 0 ? undefined : '4,4'}
-                      />
-                    );
-                  })}
+          <View style={styles.plotArea}>
+            {/* Graph SVG */}
+            <View style={styles.svgContainer} onLayout={handleLayout}>
+              <Svg width={graphWidth} height={graphHeight}>
+                {/* Horizontal grid (gain) */}
+                {GAIN_TICKS.map(tick => {
+                  const y = gainToY(tick, graphHeight, MIN_GAIN, MAX_GAIN);
+                  return (
+                    <Line
+                      key={`h-${tick}`}
+                      x1={0}
+                      y1={y}
+                      x2={graphWidth}
+                      y2={y}
+                      stroke={tick === 0 ? colors.border : colors.borderSubtle}
+                      strokeWidth={tick === 0 ? 1 : 0.5}
+                      strokeDasharray={tick === 0 ? undefined : '4,4'}
+                    />
+                  );
+                })}
 
-                  {/* Vertical grid (frequency) */}
-                  {FREQ_VALUES.map(freq => {
-                    const x = freqToX(freq, graphWidth);
-                    return (
-                      <Line
-                        key={`v-${freq}`}
-                        x1={x}
-                        y1={0}
-                        x2={x}
-                        y2={graphHeight}
-                        stroke={colors.borderSubtle}
-                        strokeWidth={0.5}
-                        strokeDasharray="4,4"
-                      />
-                    );
-                  })}
-                </>
-              )}
+                {/* Vertical grid (frequency) */}
+                {FREQ_VALUES.map(freq => {
+                  const x = freqToX(freq, graphWidth);
+                  return (
+                    <Line
+                      key={`v-${freq}`}
+                      x1={x}
+                      y1={0}
+                      x2={x}
+                      y2={graphHeight}
+                      stroke={colors.borderSubtle}
+                      strokeWidth={0.5}
+                      strokeDasharray="4,4"
+                    />
+                  );
+                })}
 
-              {/* Live RTA spectrum overlay (behind EQ curves) */}
-              {rtaData && rtaData.frequencies.length > 0 && (
-                <RTAOverlay
-                  frequencies={rtaData.frequencies}
-                  magnitudes_db={rtaData.magnitudes_db}
+                {/* Live RTA spectrum overlay (behind EQ curves) */}
+                {rtaData && rtaData.frequencies.length > 0 && (
+                  <RTAOverlay
+                    frequencies={rtaData.frequencies}
+                    magnitudes_db={rtaData.magnitudes_db}
+                    graphWidth={graphWidth}
+                    graphHeight={graphHeight}
+                    minDb={-120}
+                    maxDb={0}
+                  />
+                )}
+
+                {/* EQ Curve */}
+                <EQCurve
+                  bands={bands}
                   graphWidth={graphWidth}
                   graphHeight={graphHeight}
-                  minDb={-120}
-                  maxDb={0}
+                  minGain={MIN_GAIN}
+                  maxGain={MAX_GAIN}
+                />
+              </Svg>
+
+              {/* Draggable EQ points (overlay on top of SVG) */}
+              {bands.map((band, i) => (
+                <EQPoint
+                  key={band.id}
+                  band={band}
+                  bandIndex={i}
+                  graphWidth={graphWidth}
+                  graphHeight={graphHeight}
+                  minGain={MIN_GAIN}
+                  maxGain={MAX_GAIN}
+                  color={BAND_COLORS[i % BAND_COLORS.length]}
+                  isSelected={band.id === selectedBandId}
+                  onSelect={() => handleSelectBand(band)}
+                  onFreqChange={freq => onBandUpdate(band.id, { frequency: freq })}
+                  onGainChange={gain => onBandUpdate(band.id, { gain })}
+                  onDragEnd={() => { }}
+                />
+              ))}
+
+              {/* Band popup */}
+              {selectedBand && (
+                <EQBandPopup
+                  band={selectedBand}
+                  bandIndex={bands.indexOf(selectedBand)}
+                  position={popupPosition}
+                  bounds={{ width: graphWidth, height: graphHeight }}
+                  onPositionChange={setPopupPosition}
+                  onTypeChange={type => onBandUpdate(selectedBand.id, { type })}
+                  onFreqChange={freq => onBandUpdate(selectedBand.id, { frequency: freq })}
+                  onGainChange={gain => onBandUpdate(selectedBand.id, { gain })}
+                  onQChange={q => onBandUpdate(selectedBand.id, { q })}
+                  onToggleEnabled={() =>
+                    onBandUpdate(selectedBand.id, { enabled: !selectedBand.enabled })
+                  }
+                  onAddBand={onAddBand}
+                  onRemoveBand={() => {
+                    onRemoveBand(selectedBand.id);
+                    setSelectedBandId(null);
+                  }}
                 />
               )}
+            </View>
 
-              {/* EQ Curve */}
-              <EQCurve
-                bands={bands}
-                graphWidth={graphWidth}
-                graphHeight={graphHeight}
-                minGain={MIN_GAIN}
-                maxGain={MAX_GAIN}
-              />
-            </Svg>
-
-            {/* Draggable EQ points (overlay on top of SVG) */}
-            {bands.map((band, i) => (
-              <EQPoint
-                key={band.id}
-                band={band}
-                bandIndex={i}
-                graphWidth={graphWidth}
-                graphHeight={graphHeight}
-                minGain={MIN_GAIN}
-                maxGain={MAX_GAIN}
-                color={BAND_COLORS[i % BAND_COLORS.length]}
-                isSelected={band.id === selectedBandId}
-                onSelect={() => handleSelectBand(band)}
-                onFreqChange={freq => onBandUpdate(band.id, { frequency: freq })}
-                onGainChange={gain => onBandUpdate(band.id, { gain })}
-                onDragEnd={() => { }}
-              />
-            ))}
-
-            {/* Band popup */}
-            {selectedBand && (
-              <EQBandPopup
-                band={selectedBand}
-                bandIndex={bands.indexOf(selectedBand)}
-                position={popupPosition}
-                bounds={{ width: graphWidth, height: graphHeight }}
-                onPositionChange={setPopupPosition}
-                onTypeChange={type => onBandUpdate(selectedBand.id, { type })}
-                onFreqChange={freq => onBandUpdate(selectedBand.id, { frequency: freq })}
-                onGainChange={gain => onBandUpdate(selectedBand.id, { gain })}
-                onQChange={q => onBandUpdate(selectedBand.id, { q })}
-                onToggleEnabled={() =>
-                  onBandUpdate(selectedBand.id, { enabled: !selectedBand.enabled })
-                }
-                onAddBand={onAddBand}
-                onRemoveBand={() => {
-                  onRemoveBand(selectedBand.id);
-                  setSelectedBandId(null);
-                }}
-              />
-            )}
-          </View>
-
-          {/* Frequency axis labels */}
-          <View style={styles.freqAxis}>
-            {FREQ_TICKS.map((tick, i) => (
-              <Text
-                key={i}
-                style={[
-                  styles.freqLabel,
-                  {
-                    left: freqToX(FREQ_VALUES[i], graphWidth) - 12,
-                  },
-                ]}
-              >
-                {tick}
-              </Text>
-            ))}
+            {/* Frequency axis labels */}
+            <View style={styles.freqAxis}>
+              {FREQ_TICKS.map((tick, i) => (
+                <Text
+                  key={i}
+                  style={[
+                    styles.freqLabel,
+                    {
+                      left: Math.max(
+                        0,
+                        Math.min(
+                          graphWidth - 32,
+                          freqToX(FREQ_VALUES[i], graphWidth) - 16,
+                        ),
+                      ),
+                    },
+                  ]}
+                >
+                  {tick}
+                </Text>
+              ))}
+            </View>
           </View>
         </View>
 
@@ -237,17 +233,6 @@ export const EQGraph: React.FC<EQGraphProps> = ({
         />
       </View>
 
-      {/* Options row */}
-      <EQOptions
-        logScaleFreq={logScaleFreq}
-        showGrid={showGrid}
-        showPhase={showPhase}
-        compactMode={compactMode}
-        onToggleLogScale={setLogScaleFreq}
-        onToggleGrid={setShowGrid}
-        onTogglePhase={setShowPhase}
-        onToggleCompact={setCompactMode}
-      />
     </View>
   );
 };
@@ -274,22 +259,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flex: 1,
     paddingHorizontal: spacing.xs,
-    paddingBottom: spacing.sm,
+    paddingBottom: spacing.md,
   },
   graphContainer: {
     flex: 1,
     flexDirection: 'row',
   },
   gainAxis: {
-    width: 30,
+    width: 42,
     justifyContent: 'space-between',
-    paddingVertical: 0,
+    paddingBottom: 22,
   },
   gainLabel: {
     color: colors.textDim,
     fontSize: 8,
     textAlign: 'right',
-    paddingRight: 4,
+    paddingRight: spacing.xs,
+  },
+  plotArea: {
+    flex: 1,
   },
   svgContainer: {
     flex: 1,
@@ -298,15 +286,14 @@ const styles = StyleSheet.create({
   },
   freqAxis: {
     position: 'relative',
-    height: 20,
-    marginLeft: 30,
-    marginRight: 50,
+    height: 22,
+    marginTop: spacing.xs,
   },
   freqLabel: {
     position: 'absolute',
     color: colors.textDim,
     fontSize: 8,
     textAlign: 'center',
-    width: 28,
+    width: 32,
   },
 });

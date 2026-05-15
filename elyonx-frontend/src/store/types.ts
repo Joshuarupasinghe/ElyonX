@@ -72,10 +72,6 @@ export interface BiquadCoefficients {
 export interface UIState {
   selectedChannelId: string | null;
   selectedEQBandId: number | null;
-  showGrid: boolean;
-  showPhase: boolean;
-  compactMode: boolean;
-  logScaleFreq: boolean;
   aiAssistEnabled: boolean;
 }
 
