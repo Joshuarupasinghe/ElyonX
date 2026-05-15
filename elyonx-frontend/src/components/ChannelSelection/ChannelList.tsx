@@ -10,6 +10,7 @@ interface ChannelListProps {
   selectedChannelId: string | null;
   onSelectChannel: (channelId: string) => void;
   onToggleMute: (channelId: string) => void;
+  onRemoveChannel: (channelId: string) => void;
   onAddChannel: () => void;
 }
 
@@ -18,6 +19,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
   selectedChannelId,
   onSelectChannel,
   onToggleMute,
+  onRemoveChannel,
   onAddChannel,
 }) => {
   return (
@@ -46,6 +48,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
             isSelected={channel.id === selectedChannelId}
             onSelect={() => onSelectChannel(channel.id)}
             onToggleMute={() => onToggleMute(channel.id)}
+            onRemove={() => onRemoveChannel(channel.id)}
           />
         ))}
 

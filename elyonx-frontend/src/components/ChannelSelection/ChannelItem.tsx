@@ -9,6 +9,7 @@ interface ChannelItemProps {
   isSelected: boolean;
   onSelect: () => void;
   onToggleMute: () => void;
+  onRemove: () => void;
 }
 
 export const ChannelItem: React.FC<ChannelItemProps> = ({
@@ -16,6 +17,7 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
   isSelected,
   onSelect,
   onToggleMute,
+  onRemove,
 }) => {
   return (
     <TouchableOpacity
@@ -52,6 +54,13 @@ export const ChannelItem: React.FC<ChannelItemProps> = ({
         size={16}
         color={channel.muted ? colors.textDim : colors.textSecondary}
         onPress={onToggleMute}
+      />
+      <IconButton
+        icon="close"
+        size={15}
+        color={colors.red}
+        onPress={onRemove}
+        style={styles.removeButton}
       />
     </TouchableOpacity>
   );
@@ -99,5 +108,8 @@ const styles = StyleSheet.create({
   active: {
     color: colors.purple,
     fontWeight: typography.semiBold,
+  },
+  removeButton: {
+    marginLeft: spacing.xs,
   },
 });

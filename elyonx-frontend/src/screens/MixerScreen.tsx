@@ -160,6 +160,7 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
   // UI state
   const [aiAssistEnabled, setAiAssistEnabled] = useState(false);
   const [_aiAssistLoading, setAiAssistLoading] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [overallEQGain, setOverallEQGain] = useState(0);
   const [analysisNotice, setAnalysisNotice] = useState<AnalysisNotice | null>(
     null
@@ -299,6 +300,22 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
         await refreshMixerStatus();
       });
   }, [refreshMixerStatus]);
+
+  const handleRemoveChannel = useCallback((channelId: string) => {
+    const nextChannels = channels.filter((channel) => channel.id !== channelId);
+
+    if (nextChannels.length === channels.length) {
+      return;
+    }
+
+    setChannels(nextChannels);
+
+    if (selectedChannelId === channelId) {
+      setSelectedChannelId(nextChannels[0]?.id ?? null);
+      setAnalysisNotice(null);
+      setOverallEQGain(0);
+    }
+  }, [channels, selectedChannelId]);
 
   const handleMasterFaderChange = useCallback((db: number) => {
     setMasterFader(db);
@@ -464,59 +481,18 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
     []
   );
 
-  useEffect(() => {
-    if (!aiAssistEnabled || !streamOnline || !selectedChannel) {
+  // Run IMS analysis for the current channel.
+  const runSelectedChannelAnalysis = useCallback(async () => {
+    if (!selectedChannel) {
+      Alert.alert('No channel selected', 'Please select a channel to analyze.');
       return;
     }
 
-    let cancelled = false;
-
-    const autoAnalyze = async () => {
-      try {
-        const response = await runAnalyzeUntilStable(
-          selectedChannel.instrument,
-          () => cancelled
-        );
-
-        if (cancelled || !response) {
-          return;
-        }
-
-        setAnalysisNotice(noticeFromRecommendation(response));
-
-        setChannels((prev) =>
-          prev.map((ch) => {
-            if (ch.id !== selectedChannel.id) return ch;
-
-            return applyRecommendationToChannel(ch, response);
-          })
-        );
-        pushEQBandsToMixer(selectedChannel.index, response.bands);
-      } catch (err) {
-        console.error('[ElyonX] Auto analysis failed:', err);
-        setAnalysisNotice(
-          errorNotice('Auto analysis failed. Check the backend and RTA stream.')
-        );
-      }
-    };
-
-    autoAnalyze();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    aiAssistEnabled,
-    streamOnline,
-    selectedChannel,
-    runAnalyzeUntilStable,
-    pushEQBandsToMixer,
-  ]);
-
-  // Analyze Selected Channel via IMS Model
-  const handleAnalyzeSelected = useCallback(async () => {
-    if (!selectedChannel) {
-      Alert.alert('No channel selected', 'Please select a channel to analyze.');
+    if (!aiAssistEnabled) {
+      Alert.alert(
+        'AI Assist off',
+        'Turn on AI ASSIST before starting analysis.'
+      );
       return;
     }
 
@@ -528,7 +504,12 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
       return;
     }
 
+    if (isAnalyzing) {
+      return;
+    }
+
     try {
+      setIsAnalyzing(true);
       console.log(
         `[ElyonX] Requesting analysis for ${selectedChannel.instrument}...`
       );
@@ -560,46 +541,30 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
         'Analysis Error',
         'Failed to analyze channel. Please check the backend.'
       );
-    }
-  }, [
-    selectedChannel,
-    streamOnline,
-    runAnalyzeUntilStable,
-    pushEQBandsToMixer,
-  ]);
-
-  // Start Analyzing — enables AI Assist and begins audio capture
-  const handleStartAnalyzing = useCallback(async () => {
-    if (!selectedChannel) {
-      Alert.alert('No channel selected', 'Please select a channel first.');
-      return;
-    }
-
-    try {
-      if (!aiAssistEnabled) {
-        console.log('[ElyonX] Starting AI Assist for analysis...');
-        await handleToggleAiAssist(true);
-      } else {
-        console.log(
-          '[ElyonX] AI Assist already running, triggering immediate analysis...'
-        );
-        await handleAnalyzeSelected();
-      }
-    } catch (err) {
-      console.error('[ElyonX] Failed to start analyzing:', err);
-      setAnalysisNotice(
-        errorNotice(
-          'Failed to start analysis. Check the audio device and backend.'
-        )
-      );
-      Alert.alert('Error', 'Failed to start analyzing. Please try again.');
+    } finally {
+      setIsAnalyzing(false);
     }
   }, [
     selectedChannel,
     aiAssistEnabled,
-    handleToggleAiAssist,
-    handleAnalyzeSelected,
+    streamOnline,
+    isAnalyzing,
+    runAnalyzeUntilStable,
+    pushEQBandsToMixer,
   ]);
+
+  // Start Analyzing runs analysis only after AI Assist capture is ready.
+  const handleStartAnalyzing = useCallback(async () => {
+    if (!aiAssistEnabled) {
+      Alert.alert(
+        'AI Assist off',
+        'Turn on AI ASSIST before starting analysis.'
+      );
+      return;
+    }
+
+    await runSelectedChannelAnalysis();
+  }, [aiAssistEnabled, runSelectedChannelAnalysis]);
 
   // Reset EQ — clears all bands and disables EQ for selected channel
   const handleResetEQ = useCallback(async () => {
@@ -677,6 +642,7 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
                 selectedChannelId={selectedChannelId}
                 onSelectChannel={handleSelectChannel}
                 onToggleMute={handleToggleMute}
+                onRemoveChannel={handleRemoveChannel}
                 onAddChannel={() => setShowAddChannel(true)}
               />
             </View>
@@ -747,8 +713,8 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
       {!showSettings && (
         <BottomBar
           aiAssistEnabled={aiAssistEnabled}
+          isAnalyzing={isAnalyzing}
           onToggleAiAssist={handleToggleAiAssist}
-          onAnalyzeSelected={handleAnalyzeSelected}
           onStartAnalyzing={handleStartAnalyzing}
           onResetEQ={handleResetEQ}
         />

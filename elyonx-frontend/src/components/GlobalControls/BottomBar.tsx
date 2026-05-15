@@ -1,41 +1,36 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import {
+  ActivityIndicator,
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+} from 'react-native';
 import { ToggleSwitch } from '../Controls/ToggleSwitch';
 import { colors, typography, spacing, radii } from '../../theme/theme';
 
 interface BottomBarProps {
   aiAssistEnabled: boolean;
+  isAnalyzing: boolean;
   onToggleAiAssist: (value: boolean) => void;
-  onAnalyzeSelected: () => void;
   onStartAnalyzing: () => void;
   onResetEQ: () => void;
 }
 
 export const BottomBar: React.FC<BottomBarProps> = ({
   aiAssistEnabled,
+  isAnalyzing,
   onToggleAiAssist,
-  onAnalyzeSelected,
   onStartAnalyzing,
   onResetEQ,
 }) => {
+  const startAnalyzingDisabled = !aiAssistEnabled || isAnalyzing;
+
   return (
     <View style={styles.container}>
-      {/* Analyze Selected button (left) */}
-      <TouchableOpacity
-        style={styles.analyzeButton}
-        onPress={onAnalyzeSelected}
-        activeOpacity={0.8}
-      >
-        <Text style={styles.analyzeIcon}>🔬</Text>
-        <Text style={styles.analyzeText}>ANALYZE SELECTED</Text>
-      </TouchableOpacity>
-
-      {/* Spacer */}
       <View style={styles.spacer} />
 
-      {/* Right section */}
       <View style={styles.rightSection}>
-        {/* AI Assist toggle */}
         <ToggleSwitch
           value={aiAssistEnabled}
           onToggle={onToggleAiAssist}
@@ -43,16 +38,35 @@ export const BottomBar: React.FC<BottomBarProps> = ({
           showStatus={true}
         />
 
-        {/* Start Analyzing button */}
         <TouchableOpacity
-          style={styles.startAnalyzingButton}
+          style={[
+            styles.startAnalyzingButton,
+            !aiAssistEnabled && styles.startAnalyzingButtonDisabled,
+            isAnalyzing && styles.startAnalyzingButtonLoading,
+          ]}
           onPress={onStartAnalyzing}
+          disabled={startAnalyzingDisabled}
           activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityState={{
+            disabled: startAnalyzingDisabled,
+            busy: isAnalyzing,
+          }}
         >
-          <Text style={styles.startAnalyzingText}>START ANALYZING</Text>
+          {isAnalyzing && (
+            <ActivityIndicator size="small" color={colors.textPrimary} />
+          )}
+          <Text
+            style={[
+              styles.startAnalyzingText,
+              !aiAssistEnabled && styles.startAnalyzingTextDisabled,
+              isAnalyzing && styles.startAnalyzingTextLoading,
+            ]}
+          >
+            {isAnalyzing ? 'ANALYZING' : 'START ANALYZING'}
+          </Text>
         </TouchableOpacity>
 
-        {/* Reset button */}
         <TouchableOpacity
           style={styles.resetButton}
           onPress={onResetEQ}
@@ -73,26 +87,6 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
     height: 44,
   },
-  analyzeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.purple,
-    borderRadius: radii.lg,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    minWidth: 150,
-  },
-  analyzeIcon: {
-    fontSize: 12,
-    marginRight: spacing.xs,
-  },
-  analyzeText: {
-    color: colors.textPrimary,
-    fontSize: typography.xs,
-    fontWeight: typography.bold,
-    letterSpacing: 1,
-  },
   spacer: {
     flex: 1,
   },
@@ -102,18 +96,38 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   startAnalyzingButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     borderRadius: radii.md,
     borderWidth: 1.5,
+    borderColor: colors.green,
+    backgroundColor: colors.greenDim,
+    minWidth: 150,
+  },
+  startAnalyzingButtonDisabled: {
     borderColor: colors.border,
     backgroundColor: colors.surface,
+    opacity: 0.55,
+  },
+  startAnalyzingButtonLoading: {
+    borderColor: colors.cyan,
+    backgroundColor: colors.purpleBg,
   },
   startAnalyzingText: {
-    color: colors.textSecondary,
+    color: colors.textPrimary,
     fontSize: typography.xs,
     fontWeight: typography.bold,
     letterSpacing: 1,
+  },
+  startAnalyzingTextDisabled: {
+    color: colors.textMuted,
+  },
+  startAnalyzingTextLoading: {
+    color: colors.textPrimary,
   },
   resetButton: {
     paddingHorizontal: spacing.lg,
