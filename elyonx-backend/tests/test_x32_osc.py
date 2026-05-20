@@ -15,6 +15,9 @@ from app.services.x32_osc import (
     frequency_to_x32,
     q_to_x32,
     trim_db_to_x32,
+    x32_to_eq_gain,
+    x32_to_frequency,
+    x32_to_q,
 )
 
 
@@ -23,7 +26,7 @@ class FakeTransport:
         self.packets: list[bytes] = []
         self.closed = False
 
-    def sendto(self, payload: bytes) -> None:
+    def sendto(self, payload: bytes, _addr: object | None = None) -> None:
         self.packets.append(payload)
 
     def close(self) -> None:
@@ -52,6 +55,11 @@ def test_x32_normalized_value_conversions_match_protocol_ranges() -> None:
     assert frequency_to_x32(math.sqrt(20.0 * 20000.0)) == pytest.approx(0.5)
     assert q_to_x32(10.0) == pytest.approx(0.0)
     assert q_to_x32(0.3) == pytest.approx(1.0)
+    assert x32_to_eq_gain(0.5) == pytest.approx(0.0)
+    assert x32_to_frequency(0.0) == pytest.approx(20.0)
+    assert x32_to_frequency(1.0) == pytest.approx(20000.0)
+    assert x32_to_q(0.0) == pytest.approx(10.0)
+    assert x32_to_q(1.0) == pytest.approx(0.3)
 
 
 @pytest.mark.asyncio
@@ -107,3 +115,74 @@ async def test_x32_service_sends_expected_channel_commands() -> None:
     assert messages[5].address == "/ch/05/eq/2/q"
     assert messages[6].address == "/ch/05/eq/on"
     assert messages[6].args == [1]
+
+
+@pytest.mark.asyncio
+async def test_recent_mixer_reply_keeps_status_connected_after_transport_error() -> None:
+    service = X32OscService(host="192.168.1.50", port=10023)
+    service._transport = FakeTransport()
+    service._state = "connected"
+    service._last_seen_at = time.time()
+
+    service._mark_error("OSC transport error: transient UDP error")
+
+    status = service.status()
+    assert status.connected is True
+    assert status.state == "connected"
+    assert status.error is None
+    assert status.responsive is True
+    assert status.transport_open is True
+    assert status.last_error_at is not None
+
+
+@pytest.mark.asyncio
+async def test_idle_open_transport_stays_connected_after_reply_goes_stale() -> None:
+    service = X32OscService(host="192.168.1.50", port=10023)
+    service._transport = FakeTransport()
+    service._state = "connected"
+    service._last_seen_at = time.time() - service.stale_timeout_seconds - 1.0
+
+    status = service.status()
+
+    assert status.connected is True
+    assert status.state == "connected"
+    assert status.responsive is False
+    assert status.last_seen_age_seconds is not None
+    assert status.last_seen_age_seconds > service.stale_timeout_seconds
+
+
+def test_x32_service_normalizes_incoming_mixer_events() -> None:
+    service = X32OscService(host="192.168.1.50", port=10023)
+
+    fader_event = service._mixer_event_from_message(
+        decode_osc_message(encode_osc_message("/ch/05/mix/fader", [0.75]))
+    )
+    mute_event = service._mixer_event_from_message(
+        decode_osc_message(encode_osc_message("/ch/05/mix/on", [0]))
+    )
+    eq_event = service._mixer_event_from_message(
+        decode_osc_message(
+            encode_osc_message(
+                "/ch/05/eq/2",
+                [X32_EQ_TYPE["bell"], frequency_to_x32(1000.0), eq_gain_to_x32(-3.0), q_to_x32(1.2)],
+            )
+        )
+    )
+
+    assert fader_event is not None
+    assert fader_event["type"] == "fader"
+    assert fader_event["channel"] == 5
+    assert fader_event["value"] == pytest.approx(0.0)
+
+    assert mute_event is not None
+    assert mute_event["type"] == "mute"
+    assert mute_event["value"] is True
+
+    assert eq_event is not None
+    assert eq_event["type"] == "eq_band"
+    assert eq_event["channel"] == 5
+    assert eq_event["band"] == 2
+    assert eq_event["value"]["type"] == "bell"
+    assert eq_event["value"]["frequency"] == pytest.approx(1000.0)
+    assert eq_event["value"]["gain"] == pytest.approx(-3.0)
+    assert eq_event["value"]["q"] == pytest.approx(1.2)

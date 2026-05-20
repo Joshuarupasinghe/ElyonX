@@ -158,6 +158,15 @@ export interface MixerStatus {
   last_seen_at: number | null;
   latency_ms: number | null;
   error: string | null;
+  responsive?: boolean;
+  last_seen_age_seconds?: number | null;
+  last_error_at?: number | null;
+  last_sent_at?: number | null;
+  last_sent_address?: string | null;
+  last_datagram_from?: string | null;
+  packets_sent?: number;
+  packets_received?: number;
+  transport_open?: boolean;
   registered_channels: RegisteredMixerChannel[];
 }
 

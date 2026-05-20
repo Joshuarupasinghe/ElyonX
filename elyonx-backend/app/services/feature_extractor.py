@@ -91,7 +91,6 @@ class FeatureExtractor:
     def _compute_band_levels(self, mag_db: np.ndarray) -> List[dict]:
         """
         Return mean dBFS energy per perceptual band.
-        Matches Table 6 from the ElyonX interim report.
         """
         results = []
         for i, (name, mask) in enumerate(zip(settings.BAND_NAMES, self._band_masks)):

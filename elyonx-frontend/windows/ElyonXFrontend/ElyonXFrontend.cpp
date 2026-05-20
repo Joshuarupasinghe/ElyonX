@@ -6,7 +6,121 @@
 
 #include "AutolinkedNativeModules.g.h"
 
+#include <cwchar>
+#include <optional>
+#include <shellapi.h>
+#include <string>
+#include <winrt/Microsoft.Windows.AppLifecycle.h>
+#include <winrt/Windows.ApplicationModel.Activation.h>
+#include "DeepLinkModule.h"
 #include "NativeModules.h"
+
+namespace {
+
+constexpr wchar_t kProtocolScheme[] = L"elyonx";
+constexpr wchar_t kAppInstanceKey[] = L"ElyonXFrontend";
+
+std::optional<winrt::Windows::Foundation::Uri> TryCreateProtocolUri(std::wstring const &value) noexcept {
+  try {
+    winrt::Windows::Foundation::Uri uri{value};
+    if (_wcsicmp(uri.SchemeName().c_str(), kProtocolScheme) == 0) {
+      return uri;
+    }
+  } catch (...) {
+  }
+
+  return std::nullopt;
+}
+
+std::optional<winrt::Windows::Foundation::Uri> FindProtocolUriInCommandLine() noexcept {
+  int argc = 0;
+  auto argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+  if (!argv) {
+    return std::nullopt;
+  }
+
+  std::optional<winrt::Windows::Foundation::Uri> result;
+  for (int i = 1; i < argc; ++i) {
+    result = TryCreateProtocolUri(argv[i]);
+    if (result) {
+      break;
+    }
+  }
+
+  LocalFree(argv);
+  return result;
+}
+
+std::optional<winrt::Windows::Foundation::Uri> GetProtocolUriFromActivation(
+    winrt::Microsoft::Windows::AppLifecycle::AppActivationArguments const &args) noexcept {
+  if (args == nullptr ||
+      args.Kind() != winrt::Microsoft::Windows::AppLifecycle::ExtendedActivationKind::Protocol) {
+    return std::nullopt;
+  }
+
+  auto protocolArgs =
+      args.Data().try_as<winrt::Windows::ApplicationModel::Activation::IProtocolActivatedEventArgs>();
+  if (!protocolArgs) {
+    return std::nullopt;
+  }
+
+  return protocolArgs.Uri();
+}
+
+winrt::Microsoft::Windows::AppLifecycle::AppActivationArguments GetActivationArguments() noexcept {
+  try {
+    return winrt::Microsoft::Windows::AppLifecycle::AppInstance::GetCurrent().GetActivatedEventArgs();
+  } catch (...) {
+    return nullptr;
+  }
+}
+
+bool RedirectActivationToRunningInstance(
+    winrt::Microsoft::Windows::AppLifecycle::AppActivationArguments const &activationArgs) noexcept {
+  try {
+    auto mainInstance = winrt::Microsoft::Windows::AppLifecycle::AppInstance::FindOrRegisterForKey(kAppInstanceKey);
+    if (!mainInstance.IsCurrent() &&
+        activationArgs != nullptr &&
+        activationArgs.Kind() == winrt::Microsoft::Windows::AppLifecycle::ExtendedActivationKind::Protocol) {
+      auto redirectOperation = mainInstance.RedirectActivationToAsync(activationArgs);
+      auto completedEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+      if (completedEvent != nullptr) {
+        redirectOperation.Completed(
+            [completedEvent](auto const &, winrt::Windows::Foundation::AsyncStatus const &) noexcept {
+              SetEvent(completedEvent);
+            });
+
+        MSG message;
+        while (true) {
+          auto waitResult = MsgWaitForMultipleObjects(1, &completedEvent, FALSE, INFINITE, QS_ALLINPUT);
+          if (waitResult == WAIT_OBJECT_0) {
+            break;
+          }
+          if (waitResult != WAIT_OBJECT_0 + 1) {
+            break;
+          }
+
+          while (PeekMessageW(&message, nullptr, 0, 0, PM_REMOVE)) {
+            TranslateMessage(&message);
+            DispatchMessageW(&message);
+          }
+        }
+
+        CloseHandle(completedEvent);
+      }
+      return true;
+    }
+  } catch (...) {
+  }
+
+  return false;
+}
+
+void OpenProtocolUri(winrt::Windows::Foundation::Uri const &uri) noexcept {
+  winrt::ElyonXFrontend::ElyonXDeepLink::OpenUrl(uri.AbsoluteUri());
+}
+
+} // namespace
 
 // A PackageProvider containing any turbo modules you define within this app project
 struct CompReactPackageProvider
@@ -21,6 +135,11 @@ struct CompReactPackageProvider
 _Use_decl_annotations_ int CALLBACK WinMain(HINSTANCE instance, HINSTANCE, PSTR /* commandLine */, int showCmd) {
   // Initialize WinRT
   winrt::init_apartment(winrt::apartment_type::single_threaded);
+
+  auto activationArgs = GetActivationArguments();
+  if (RedirectActivationToRunningInstance(activationArgs)) {
+    return 0;
+  }
 
   // Enable per monitor DPI scaling
   SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
@@ -76,6 +195,27 @@ _Use_decl_annotations_ int CALLBACK WinMain(HINSTANCE instance, HINSTANCE, PSTR 
   // Get the ReactViewOptions so we can set the initial RN component to load
   auto viewOptions{reactNativeWin32App.ReactViewOptions()};
   viewOptions.ComponentName(L"ElyonX");
+
+  try {
+    winrt::Microsoft::Windows::AppLifecycle::AppInstance::GetCurrent().Activated(
+        [appWindow](winrt::Windows::Foundation::IInspectable const &,
+           winrt::Microsoft::Windows::AppLifecycle::AppActivationArguments const &args) {
+          if (auto uri = GetProtocolUriFromActivation(args)) {
+            appWindow.Show();
+            OpenProtocolUri(*uri);
+          }
+        });
+  } catch (...) {
+  }
+
+  auto initialUri = GetProtocolUriFromActivation(activationArgs);
+  if (!initialUri) {
+    initialUri = FindProtocolUriInCommandLine();
+  }
+
+  if (initialUri) {
+    OpenProtocolUri(*initialUri);
+  }
 
   // Start the app
   reactNativeWin32App.Start();

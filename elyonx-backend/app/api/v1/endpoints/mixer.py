@@ -35,6 +35,15 @@ class MixerStatusResponse(BaseModel):
     last_seen_at: float | None = None
     latency_ms: float | None = None
     error: str | None = None
+    responsive: bool = False
+    last_seen_age_seconds: float | None = None
+    last_error_at: float | None = None
+    last_sent_at: float | None = None
+    last_sent_address: str | None = None
+    last_datagram_from: str | None = None
+    packets_sent: int = 0
+    packets_received: int = 0
+    transport_open: bool = False
     registered_channels: list[RegisteredMixerChannelResponse] = Field(default_factory=list)
 
 

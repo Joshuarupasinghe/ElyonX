@@ -54,8 +54,8 @@ export const TopBar: React.FC<TopBarProps> = ({
           <View style={styles.logoCircle} />
         </View>
         <View>
-          <Text style={styles.logoText}>ELYON</Text>
-          <Text style={styles.logoSubtext}>AUDIO SYSTEMS</Text>
+          <Text style={styles.logoText}>ELYONX</Text>
+          <Text style={styles.logoSubtext}>IMS</Text>
         </View>
       </View>
 

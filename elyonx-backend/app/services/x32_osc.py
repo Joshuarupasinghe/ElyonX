@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import math
+import re
 import socket
 import struct
 import time
@@ -58,6 +59,15 @@ class MixerStatus:
     last_seen_at: float | None = None
     latency_ms: float | None = None
     error: str | None = None
+    responsive: bool = False
+    last_seen_age_seconds: float | None = None
+    last_error_at: float | None = None
+    last_sent_at: float | None = None
+    last_sent_address: str | None = None
+    last_datagram_from: str | None = None
+    packets_sent: int = 0
+    packets_received: int = 0
+    transport_open: bool = False
     registered_channels: list[RegisteredMixerChannel] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
@@ -72,6 +82,15 @@ class MixerStatus:
             "last_seen_at": self.last_seen_at,
             "latency_ms": self.latency_ms,
             "error": self.error,
+            "responsive": self.responsive,
+            "last_seen_age_seconds": self.last_seen_age_seconds,
+            "last_error_at": self.last_error_at,
+            "last_sent_at": self.last_sent_at,
+            "last_sent_address": self.last_sent_address,
+            "last_datagram_from": self.last_datagram_from,
+            "packets_sent": self.packets_sent,
+            "packets_received": self.packets_received,
+            "transport_open": self.transport_open,
             "registered_channels": [
                 {
                     "channel": channel.channel,
@@ -213,6 +232,15 @@ X32_EQ_TYPE: dict[str, int] = {
     "highshelf": 4,  # HShv
     "lowpass": 5,  # HCut
 }
+X32_EQ_TYPE_BY_VALUE: dict[int, str] = {value: key for key, value in X32_EQ_TYPE.items()}
+
+CHANNEL_FADER_RE = re.compile(r"^/ch/(\d{2})/mix/fader$")
+CHANNEL_MUTE_RE = re.compile(r"^/ch/(\d{2})/mix/on$")
+CHANNEL_NAME_RE = re.compile(r"^/ch/(\d{2})/config/name$")
+CHANNEL_EQ_ENABLED_RE = re.compile(r"^/ch/(\d{2})/eq/on$")
+CHANNEL_EQ_PARAM_RE = re.compile(r"^/ch/(\d{2})/eq/([1-4])/(type|f|g|q)$")
+CHANNEL_EQ_BAND_RE = re.compile(r"^/ch/(\d{2})/eq/([1-4])$")
+CHANNEL_SOLO_RE = re.compile(r"^/-stat/solosw/(\d{2})$")
 
 
 def db_to_x32_fader(db: float) -> float:
@@ -256,8 +284,20 @@ def frequency_to_x32(freq_hz: float) -> float:
     )
 
 
+def x32_to_frequency(value: float) -> float:
+    value = clamp(value, 0.0, 1.0)
+    return 10 ** (
+        math.log10(20.0)
+        + value * (math.log10(20000.0) - math.log10(20.0))
+    )
+
+
 def eq_gain_to_x32(gain_db: float) -> float:
     return (clamp(gain_db, -15.0, 15.0) + 15.0) / 30.0
+
+
+def x32_to_eq_gain(value: float) -> float:
+    return (clamp(value, 0.0, 1.0) * 30.0) - 15.0
 
 
 def q_to_x32(q_value: float) -> float:
@@ -266,12 +306,44 @@ def q_to_x32(q_value: float) -> float:
     return (math.log(q_value) - math.log(10.0)) / (math.log(0.3) - math.log(10.0))
 
 
+def x32_to_q(value: float) -> float:
+    value = clamp(value, 0.0, 1.0)
+    return math.exp(math.log(10.0) + value * (math.log(0.3) - math.log(10.0)))
+
+
 def trim_db_to_x32(trim_db: float) -> float:
     return (clamp(trim_db, -18.0, 18.0) + 18.0) / 36.0
 
 
 def headamp_gain_db_to_x32(gain_db: float) -> float:
     return clamp(gain_db, 0.0, 60.0) / 60.0
+
+
+def _arg_as_float(message: OscMessage, index: int = 0) -> float | None:
+    if len(message.args) <= index:
+        return None
+    value = message.args[index]
+    if isinstance(value, int | float):
+        return float(value)
+    return None
+
+
+def _arg_as_int(message: OscMessage, index: int = 0) -> int | None:
+    if len(message.args) <= index:
+        return None
+    value = message.args[index]
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        return int(value)
+    return None
+
+
+def _arg_as_string(message: OscMessage, index: int = 0) -> str | None:
+    if len(message.args) <= index:
+        return None
+    value = message.args[index]
+    return value if isinstance(value, str) else None
 
 
 class _X32DatagramProtocol(asyncio.DatagramProtocol):
@@ -323,6 +395,12 @@ class X32OscService:
         self._last_probe_at: float | None = None
         self._latency_ms: float | None = None
         self._error: str | None = None
+        self._last_error_at: float | None = None
+        self._last_sent_at: float | None = None
+        self._last_sent_address: str | None = None
+        self._last_datagram_from: str | None = None
+        self._packets_sent = 0
+        self._packets_received = 0
         self._mixer_name: str | None = None
         self._firmware: str | None = None
         self._model: str | None = None
@@ -332,15 +410,23 @@ class X32OscService:
 
     @property
     def connected(self) -> bool:
-        if self._state != "connected" or self._last_seen_at is None:
+        return self._transport is not None and self._last_seen_at is not None
+
+    def _has_recent_mixer_reply(self) -> bool:
+        if self._last_seen_at is None:
             return False
         return (time.time() - self._last_seen_at) <= self.stale_timeout_seconds
 
     def status(self) -> MixerStatus:
+        now = time.time()
         connected = self.connected
-        state = self._state
+        responsive = self._has_recent_mixer_reply()
+        state: ConnectionState = "connected" if connected else self._state
         if self._state == "connected" and not connected:
             state = "error"
+        last_seen_age_seconds = (
+            None if self._last_seen_at is None else max(0.0, now - self._last_seen_at)
+        )
         return MixerStatus(
             connected=connected,
             state=state,
@@ -352,6 +438,15 @@ class X32OscService:
             last_seen_at=self._last_seen_at,
             latency_ms=self._latency_ms,
             error=None if connected else self._error,
+            responsive=responsive,
+            last_seen_age_seconds=last_seen_age_seconds,
+            last_error_at=self._last_error_at,
+            last_sent_at=self._last_sent_at,
+            last_sent_address=self._last_sent_address,
+            last_datagram_from=self._last_datagram_from,
+            packets_sent=self._packets_sent,
+            packets_received=self._packets_received,
+            transport_open=self._transport is not None,
             registered_channels=sorted(self._channels.values(), key=lambda item: item.channel),
         )
 
@@ -382,7 +477,6 @@ class X32OscService:
                 transport, _ = await loop.create_datagram_endpoint(
                     lambda: _X32DatagramProtocol(self),
                     local_addr=("0.0.0.0", 0),
-                    remote_addr=(self.host, self.port),
                     family=socket.AF_INET,
                 )
             except OSError as exc:
@@ -390,7 +484,6 @@ class X32OscService:
                 raise MixerConnectionError(self._error or "Could not open UDP socket.") from exc
 
             self._transport = transport
-            self._heartbeat_task = asyncio.create_task(self._heartbeat_loop())
 
             try:
                 await self._probe(timeout=self.connect_timeout_seconds)
@@ -399,6 +492,8 @@ class X32OscService:
                 raise
 
             self._state = "connected"
+            self._send_payload(encode_osc_message("/xremote"), "/xremote")
+            self._heartbeat_task = asyncio.create_task(self._heartbeat_loop())
             await self._broadcast_status()
             return self.status()
 
@@ -437,7 +532,10 @@ class X32OscService:
                 await self.send(f"/ch/{pad_channel(channel)}/config/name", [clean_name])
 
             await self.send(f"/ch/{pad_channel(channel)}/mix/fader")
+            await self.send(f"/ch/{pad_channel(channel)}/mix/on")
+            await self.send(f"/-stat/solosw/{pad_channel(channel)}")
             await self.send(f"/ch/{pad_channel(channel)}/preamp/trim")
+            await self.send(f"/ch/{pad_channel(channel)}/eq/on")
             for band in range(1, 5):
                 await self.send(f"/ch/{pad_channel(channel)}/eq/{band}")
         else:
@@ -520,7 +618,7 @@ class X32OscService:
             raise MixerConnectionError("Mixer transport is not open.")
 
         payload = encode_osc_message(address, args)
-        self._transport.sendto(payload)  # type: ignore[attr-defined]
+        self._send_payload(payload, address)
         logger.debug("OSC -> %s %s", address, list(args or []))
 
     async def ensure_connected(self) -> None:
@@ -535,7 +633,7 @@ class X32OscService:
         payload = encode_osc_message("/xinfo")
         if self._transport is None:
             raise MixerConnectionError("Mixer transport is not open.")
-        self._transport.sendto(payload)  # type: ignore[attr-defined]
+        self._send_payload(payload, "/xinfo")
 
         try:
             message = await asyncio.wait_for(self._pending_probe, timeout=timeout)
@@ -553,9 +651,9 @@ class X32OscService:
         try:
             while True:
                 if self._transport is not None:
-                    self._transport.sendto(encode_osc_message("/xremote"))  # type: ignore[attr-defined]
+                    self._send_payload(encode_osc_message("/xremote"), "/xremote")
                     self._last_probe_at = time.time()
-                    self._transport.sendto(encode_osc_message("/xinfo"))  # type: ignore[attr-defined]
+                    self._send_payload(encode_osc_message("/xinfo"), "/xinfo")
                 await asyncio.sleep(self.heartbeat_interval_seconds)
         except asyncio.CancelledError:
             raise
@@ -579,6 +677,147 @@ class X32OscService:
             self._transport.close()
             self._transport = None
 
+    def _send_payload(self, payload: bytes, address: str) -> None:
+        if self._transport is None:
+            raise MixerConnectionError("Mixer transport is not open.")
+        self._transport.sendto(payload, (self.host, self.port))  # type: ignore[attr-defined]
+        self._last_sent_at = time.time()
+        self._last_sent_address = address
+        self._packets_sent += 1
+
+    def _mixer_event_from_message(self, message: OscMessage) -> dict[str, Any] | None:
+        payload: dict[str, Any] = {
+            "event": "mixer_event",
+            "address": message.address,
+            "timestamp_ms": int(time.time() * 1000),
+        }
+
+        if message.address == "/main/st/mix/fader":
+            value = _arg_as_float(message)
+            if value is None:
+                return None
+            return {**payload, "type": "fader", "channel": 0, "value": x32_fader_to_db(value)}
+
+        if match := CHANNEL_FADER_RE.match(message.address):
+            value = _arg_as_float(message)
+            if value is None:
+                return None
+            return {
+                **payload,
+                "type": "fader",
+                "channel": int(match.group(1)),
+                "value": x32_fader_to_db(value),
+            }
+
+        if match := CHANNEL_MUTE_RE.match(message.address):
+            value = _arg_as_int(message)
+            if value is None:
+                return None
+            return {
+                **payload,
+                "type": "mute",
+                "channel": int(match.group(1)),
+                "value": value == 0,
+            }
+
+        if match := CHANNEL_SOLO_RE.match(message.address):
+            value = _arg_as_int(message)
+            if value is None:
+                return None
+            return {
+                **payload,
+                "type": "solo",
+                "channel": int(match.group(1)),
+                "value": value == 1,
+            }
+
+        if match := CHANNEL_NAME_RE.match(message.address):
+            value = _arg_as_string(message)
+            if value is None:
+                return None
+            return {
+                **payload,
+                "type": "channel_name",
+                "channel": int(match.group(1)),
+                "value": value,
+            }
+
+        if match := CHANNEL_EQ_ENABLED_RE.match(message.address):
+            value = _arg_as_int(message)
+            if value is None:
+                return None
+            return {
+                **payload,
+                "type": "eq_enabled",
+                "channel": int(match.group(1)),
+                "value": value == 1,
+            }
+
+        if match := CHANNEL_EQ_PARAM_RE.match(message.address):
+            channel = int(match.group(1))
+            band = int(match.group(2))
+            param = match.group(3)
+            value = _arg_as_float(message)
+            if value is None:
+                return None
+
+            if param == "type":
+                type_value = _arg_as_int(message)
+                if type_value is None:
+                    return None
+                return {
+                    **payload,
+                    "type": "eq_type",
+                    "channel": channel,
+                    "band": band,
+                    "value": X32_EQ_TYPE_BY_VALUE.get(type_value, "bell"),
+                }
+            if param == "f":
+                return {
+                    **payload,
+                    "type": "eq_freq",
+                    "channel": channel,
+                    "band": band,
+                    "value": x32_to_frequency(value),
+                }
+            if param == "g":
+                return {
+                    **payload,
+                    "type": "eq_gain",
+                    "channel": channel,
+                    "band": band,
+                    "value": x32_to_eq_gain(value),
+                }
+            return {
+                **payload,
+                "type": "eq_q",
+                "channel": channel,
+                "band": band,
+                "value": x32_to_q(value),
+            }
+
+        if match := CHANNEL_EQ_BAND_RE.match(message.address):
+            eq_type = _arg_as_int(message, 0)
+            frequency = _arg_as_float(message, 1)
+            gain = _arg_as_float(message, 2)
+            q = _arg_as_float(message, 3)
+            if eq_type is None or frequency is None or gain is None or q is None:
+                return None
+            return {
+                **payload,
+                "type": "eq_band",
+                "channel": int(match.group(1)),
+                "band": int(match.group(2)),
+                "value": {
+                    "type": X32_EQ_TYPE_BY_VALUE.get(eq_type, "bell"),
+                    "frequency": x32_to_frequency(frequency),
+                    "gain": x32_to_eq_gain(gain),
+                    "q": x32_to_q(q),
+                },
+            }
+
+        return None
+
     def _handle_datagram(self, data: bytes, addr: tuple[str, int]) -> None:
         try:
             message = decode_osc_message(data)
@@ -586,6 +825,8 @@ class X32OscService:
             logger.debug("Ignored malformed OSC datagram from %s: %s", addr, exc)
             return
 
+        self._packets_received += 1
+        self._last_datagram_from = f"{addr[0]}:{addr[1]}"
         self._last_seen_at = time.time()
         if self._last_probe_at is not None:
             self._latency_ms = (self._last_seen_at - self._last_probe_at) * 1000.0
@@ -595,10 +836,18 @@ class X32OscService:
         if message.address in {"/xinfo", "/info"}:
             self._parse_info_message(message)
 
-        if self._pending_probe is not None and not self._pending_probe.done():
+        mixer_event = self._mixer_event_from_message(message)
+
+        if (
+            message.address in {"/xinfo", "/info"}
+            and self._pending_probe is not None
+            and not self._pending_probe.done()
+        ):
             self._pending_probe.set_result(message)
 
         try:
+            if mixer_event is not None:
+                asyncio.create_task(ws_manager.broadcast(mixer_event))
             asyncio.create_task(self._broadcast_status())
         except RuntimeError:
             pass
@@ -609,6 +858,11 @@ class X32OscService:
             return
 
         if message.address == "/xinfo":
+            if len(values) >= 4:
+                self._mixer_name = values[1]
+                self._model = values[2]
+                self._firmware = values[3]
+                return
             self._firmware = values[0] if len(values) >= 1 else self._firmware
             self._mixer_name = values[1] if len(values) >= 2 else self._mixer_name
             self._model = values[2] if len(values) >= 3 else self._model
@@ -621,6 +875,7 @@ class X32OscService:
     def _mark_error(self, error: str) -> None:
         self._state = "error"
         self._error = error
+        self._last_error_at = time.time()
         logger.warning(error)
 
     async def _broadcast_status(self) -> None:

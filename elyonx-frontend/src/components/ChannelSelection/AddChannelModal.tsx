@@ -8,6 +8,7 @@ import {
   Modal,
   ScrollView,
   Image,
+  Platform,
 } from 'react-native';
 import { InstrumentType, Channel, DEFAULT_EQ_BANDS } from '../../store/types';
 import { colors, typography, spacing, radii } from '../../theme/theme';
@@ -17,6 +18,35 @@ interface AddChannelModalProps {
   onClose: () => void;
   onAddChannel: (channel: Channel) => void;
 }
+
+interface ModalFrameProps {
+  visible: boolean;
+  onClose: () => void;
+  children: React.ReactNode;
+}
+
+const ModalFrame: React.FC<ModalFrameProps> = ({
+  visible,
+  onClose,
+  children,
+}) => {
+  if (Platform.OS === 'windows') {
+    return visible ? (
+      <View style={styles.windowsModalFrame}>{children}</View>
+    ) : null;
+  }
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      {children}
+    </Modal>
+  );
+};
 
 const INSTRUMENTS: {
   type: InstrumentType;
@@ -80,12 +110,7 @@ export const AddChannelModal: React.FC<AddChannelModalProps> = ({
   };
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
+    <ModalFrame visible={visible} onClose={onClose}>
       <View style={styles.overlay}>
         <View style={styles.modal}>
           <View style={styles.header}>
@@ -195,7 +220,7 @@ export const AddChannelModal: React.FC<AddChannelModalProps> = ({
           </View>
         </View>
       </View>
-    </Modal>
+    </ModalFrame>
   );
 };
 
@@ -205,6 +230,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.75)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  windowsModalFrame: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    zIndex: 1000,
   },
   modal: {
     width: 420,

@@ -1,12 +1,15 @@
-import { RTAFrame } from "@/store/types";
+import { MixerEvent, RTAFrame } from "@/store/types";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { BACKEND_URL } from "../api/backend";
+import type { MixerStatus } from "../api/backend";
 
 const WS_URL = BACKEND_URL.replace(/^http/, "ws") + "/api/v1/rta/ws";
 const RECONNECT_DELAY_MS = 3000;
  
 export function useRTATelemetry() {
   const [frame, setFrame] = useState<RTAFrame | null>(null);
+  const [mixerStatus, setMixerStatus] = useState<MixerStatus | null>(null);
+  const [mixerEvent, setMixerEvent] = useState<MixerEvent | null>(null);
   const [connected, setConnected] = useState(false);
   const [streamOnline, setStreamOnline] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
@@ -57,6 +60,16 @@ export function useRTATelemetry() {
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
+        if (data.event === "mixer_status") {
+          setMixerStatus(data as MixerStatus);
+          return;
+        }
+
+        if (data.event === "mixer_event") {
+          setMixerEvent(data as MixerEvent);
+          return;
+        }
+
         latestFrameRef.current = data;
         scheduleFrameFlush();
       } catch (e) {
@@ -90,6 +103,8 @@ export function useRTATelemetry() {
  
   return {
     frame,
+    mixerStatus,
+    mixerEvent,
     connected,
     streamOnline,
     rta: frame?.rta ?? null,

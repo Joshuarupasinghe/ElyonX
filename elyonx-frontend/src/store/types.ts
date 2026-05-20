@@ -39,6 +39,8 @@ export type MixerEventType =
   | 'fader'
   | 'mute'
   | 'solo'
+  | 'eq_enabled'
+  | 'eq_band'
   | 'eq_freq'
   | 'eq_gain'
   | 'eq_q'
@@ -48,11 +50,14 @@ export type MixerEventType =
   | 'unknown';
 
 export interface MixerEvent {
+  event?: 'mixer_event';
   type: MixerEventType;
   channel: number;
   band?: number;
   param?: string;
-  value: number | string | boolean;
+  value: number | string | boolean | Partial<EQBand>;
+  address?: string;
+  timestamp_ms?: number;
 }
 
 export interface BiquadCoefficients {

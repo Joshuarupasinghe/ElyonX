@@ -1,6 +1,6 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { StyleSheet, View, Linking, Platform } from 'react-native';
+import { StyleSheet, View, Platform } from 'react-native';
 import { MixerScreen } from './src/screens/MixerScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { SignUpScreen } from './src/screens/SignUpScreen';
@@ -15,6 +15,8 @@ import {
   logout,
   isAuthenticated,
   AuthUser,
+  addDeepLinkListener,
+  getInitialDeepLinkUrl,
 } from './src/auth';
 
 type Screen = 'login' | 'signup' | 'mixer' | 'account';
@@ -35,6 +37,7 @@ const App: React.FC = () => {
   const [authLoading, setAuthLoading] = useState(true);
   const [authSubmitting, setAuthSubmitting] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const processedAuthCallbackUrls = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     (async () => {
@@ -55,6 +58,9 @@ const App: React.FC = () => {
   useEffect(() => {
     const processCallbackUrl = async (url: string) => {
       if (!url.includes('/auth/callback') && !url.includes('auth/callback')) return;
+      if (processedAuthCallbackUrls.current.has(url)) return;
+
+      processedAuthCallbackUrls.current.add(url);
 
       console.log('[ElyonX] Processing auth callback URL:', url);
 
@@ -86,12 +92,12 @@ const App: React.FC = () => {
         }
       }
     } else {
-      const handleUrl = (event: { url: string }) => {
-        console.log('[ElyonX] Deep link received:', event.url);
-        processCallbackUrl(event.url);
+      const handleUrl = (url: string) => {
+        console.log('[ElyonX] Deep link received:', url);
+        processCallbackUrl(url);
       };
 
-      Linking.getInitialURL().then((url) => {
+      getInitialDeepLinkUrl().then((url) => {
         if (url) {
           console.log('[ElyonX] Initial URL from deep link:', url);
           processCallbackUrl(url);
@@ -100,7 +106,7 @@ const App: React.FC = () => {
         console.warn('[ElyonX] Failed to get initial URL:', err);
       });
 
-      const subscription = Linking.addEventListener('url', handleUrl);
+      const subscription = addDeepLinkListener(handleUrl);
       return () => subscription.remove();
     }
   }, []);

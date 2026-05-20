@@ -14,7 +14,13 @@ import { AddChannelModal } from '../components/ChannelSelection/AddChannelModal'
 import { EQGraph } from '../components/Equalizer/EQGraph';
 import { FaderBank } from '../components/FaderBank/FaderBank';
 import { SettingsPage } from './SettingsPage';
-import { Channel, EQBand, EQRecommendation } from '../store/types';
+import {
+  Channel,
+  DEFAULT_EQ_BANDS,
+  EQBand,
+  EQRecommendation,
+  MixerEvent,
+} from '../store/types';
 import { useRTATelemetry } from '../hooks/UseRTATelemetry';
 import type { AuthUser } from '../auth';
 import {
@@ -47,6 +53,7 @@ const STABLE_REQUIRED_CONSECUTIVE = 3;
 const STABLE_GAIN_DELTA_DB = 0.25;
 const STABLE_FREQ_DELTA_HZ = 10;
 const STABLE_Q_DELTA = 0.08;
+const MIXER_OFFLINE_CONFIRMATION_POLLS = 3;
 
 type AnalysisNotice = {
   level: 'warning' | 'error';
@@ -59,6 +66,11 @@ type SuggestedEQSummary = {
   channelId: string;
   channelName: string;
   bands: EQBand[];
+};
+
+type MixerConnectionHealth = {
+  connected: boolean;
+  missedPolls: number;
 };
 
 const SUMMARY_BAND_COLORS = [
@@ -167,6 +179,62 @@ function applyRecommendationToChannel(
   };
 }
 
+function isEQBandPatch(value: MixerEvent['value']): value is Partial<EQBand> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function baseEQBand(bandId: number): EQBand {
+  return {
+    ...(DEFAULT_EQ_BANDS[bandId - 1] ?? DEFAULT_EQ_BANDS[0]),
+    id: bandId,
+  };
+}
+
+function hasUsableMixerConnection(status: MixerStatus | null): boolean {
+  if (!status) {
+    return false;
+  }
+
+  return Boolean(
+    status.connected ||
+      status.responsive ||
+      (status.transport_open && (status.mixer_name || status.model))
+  );
+}
+
+function mergeMixerStatus(
+  previous: MixerStatus | null,
+  next: MixerStatus
+): MixerStatus {
+  if (!previous) {
+    return next;
+  }
+
+  return {
+    ...next,
+    mixer_name: next.mixer_name ?? previous.mixer_name,
+    model: next.model ?? previous.model,
+    firmware: next.firmware ?? previous.firmware,
+  };
+}
+
+function updateEQBand(
+  bands: EQBand[],
+  bandId: number,
+  patch: Partial<EQBand>
+): EQBand[] {
+  const nextBands = [...bands];
+  const existingIndex = nextBands.findIndex((band) => band.id === bandId);
+
+  if (existingIndex >= 0) {
+    nextBands[existingIndex] = { ...nextBands[existingIndex], ...patch, id: bandId };
+    return nextBands.sort((a, b) => a.id - b.id);
+  }
+
+  nextBands.push({ ...baseEQBand(bandId), ...patch, id: bandId });
+  return nextBands.sort((a, b) => a.id - b.id);
+}
+
 export const MixerScreen: React.FC<MixerScreenProps> = ({
   currentUser,
   onViewAccount,
@@ -192,10 +260,140 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
   const [showSuggestedEQSummary, setShowSuggestedEQSummary] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [mixerStatus, setMixerStatus] = useState<MixerStatus | null>(null);
+  const [mixerConnectionHealth, setMixerConnectionHealth] =
+    useState<MixerConnectionHealth>({
+      connected: false,
+      missedPolls: 0,
+    });
 
-  const { rta, connected, streamOnline } = useRTATelemetry();
+  const {
+    rta,
+    connected,
+    streamOnline,
+    mixerStatus: liveMixerStatus,
+    mixerEvent,
+  } = useRTATelemetry();
 
   const selectedChannel = channels.find((c) => c.id === selectedChannelId);
+
+  const applyMixerStatus = useCallback((status: MixerStatus) => {
+    const usableConnection = hasUsableMixerConnection(status);
+
+    setMixerStatus((previous) => mergeMixerStatus(previous, status));
+    setMixerConnectionHealth((previous) => {
+      if (usableConnection) {
+        return { connected: true, missedPolls: 0 };
+      }
+
+      const missedPolls = previous.missedPolls + 1;
+      return {
+        connected:
+          previous.connected &&
+          missedPolls < MIXER_OFFLINE_CONFIRMATION_POLLS,
+        missedPolls,
+      };
+    });
+  }, []);
+
+  useEffect(() => {
+    if (liveMixerStatus) {
+      applyMixerStatus(liveMixerStatus);
+    }
+  }, [applyMixerStatus, liveMixerStatus]);
+
+  useEffect(() => {
+    if (!mixerEvent) {
+      return;
+    }
+
+    if (mixerEvent.channel === 0 && mixerEvent.type === 'fader') {
+      if (typeof mixerEvent.value === 'number') {
+        setMasterFader(mixerEvent.value);
+      }
+      return;
+    }
+
+    setChannels((prev) =>
+      prev.map((channel) => {
+        if (channel.index !== mixerEvent.channel) {
+          return channel;
+        }
+
+        switch (mixerEvent.type) {
+          case 'fader':
+            return typeof mixerEvent.value === 'number'
+              ? { ...channel, faderValue: mixerEvent.value }
+              : channel;
+          case 'mute':
+            return typeof mixerEvent.value === 'boolean'
+              ? { ...channel, muted: mixerEvent.value }
+              : channel;
+          case 'solo':
+            return typeof mixerEvent.value === 'boolean'
+              ? { ...channel, solo: mixerEvent.value }
+              : channel;
+          case 'channel_name':
+            return typeof mixerEvent.value === 'string'
+              ? { ...channel, name: mixerEvent.value || channel.name }
+              : channel;
+          case 'eq_enabled':
+            return typeof mixerEvent.value === 'boolean'
+              ? { ...channel, eqEnabled: mixerEvent.value }
+              : channel;
+          case 'eq_band':
+            if (!mixerEvent.band || !isEQBandPatch(mixerEvent.value)) {
+              return channel;
+            }
+            return {
+              ...channel,
+              eqBands: updateEQBand(
+                channel.eqBands,
+                mixerEvent.band,
+                mixerEvent.value
+              ),
+            };
+          case 'eq_freq':
+            return typeof mixerEvent.value === 'number' && mixerEvent.band
+              ? {
+                  ...channel,
+                  eqBands: updateEQBand(channel.eqBands, mixerEvent.band, {
+                    frequency: mixerEvent.value,
+                  }),
+                }
+              : channel;
+          case 'eq_gain':
+            return typeof mixerEvent.value === 'number' && mixerEvent.band
+              ? {
+                  ...channel,
+                  eqBands: updateEQBand(channel.eqBands, mixerEvent.band, {
+                    gain: mixerEvent.value,
+                  }),
+                }
+              : channel;
+          case 'eq_q':
+            return typeof mixerEvent.value === 'number' && mixerEvent.band
+              ? {
+                  ...channel,
+                  eqBands: updateEQBand(channel.eqBands, mixerEvent.band, {
+                    q: mixerEvent.value,
+                  }),
+                }
+              : channel;
+          case 'eq_type':
+            return typeof mixerEvent.value === 'string' && mixerEvent.band
+              ? {
+                  ...channel,
+                  eqBands: updateEQBand(channel.eqBands, mixerEvent.band, {
+                    type: mixerEvent.value as EQBand['type'],
+                  }),
+                }
+              : channel;
+          default:
+            return channel;
+        }
+      })
+    );
+  }, [mixerEvent]);
 
   const clearSuggestedEQSummary = useCallback(() => {
     setSuggestedEQSummary(null);
@@ -205,16 +403,20 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
   const refreshMixerStatus = useCallback(async () => {
     try {
       const status = await fetchMixerStatus();
-      setMixerStatus(status);
+      applyMixerStatus(status);
     } catch (err) {
       console.warn('[ElyonX] Mixer status unavailable:', err);
-      setMixerStatus((prev) =>
-        prev
-          ? { ...prev, connected: false, state: 'error', error: String(err) }
-          : prev
-      );
+      setMixerConnectionHealth((previous) => {
+        const missedPolls = previous.missedPolls + 1;
+        return {
+          connected:
+            previous.connected &&
+            missedPolls < MIXER_OFFLINE_CONFIRMATION_POLLS,
+          missedPolls,
+        };
+      });
     }
-  }, []);
+  }, [applyMixerStatus]);
 
   useEffect(() => {
     let cancelled = false;
@@ -222,11 +424,20 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
       try {
         const status = await fetchMixerStatus();
         if (!cancelled) {
-          setMixerStatus(status);
+          applyMixerStatus(status);
         }
       } catch (err) {
         if (!cancelled) {
           console.warn('[ElyonX] Mixer status poll failed:', err);
+          setMixerConnectionHealth((previous) => {
+            const missedPolls = previous.missedPolls + 1;
+            return {
+              connected:
+                previous.connected &&
+                missedPolls < MIXER_OFFLINE_CONFIRMATION_POLLS,
+              missedPolls,
+            };
+          });
         }
       }
     };
@@ -237,22 +448,23 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
       cancelled = true;
       clearInterval(intervalId);
     };
-  }, []);
+  }, [applyMixerStatus]);
 
   const sendMixerCommand = useCallback(
     async (operation: () => Promise<unknown>) => {
-      if (!mixerStatus?.connected) {
-        return;
-      }
+      const wasMarkedDisconnected = !mixerConnectionHealth.connected;
 
       try {
         await operation();
+        if (wasMarkedDisconnected) {
+          await refreshMixerStatus();
+        }
       } catch (err) {
         console.warn('[ElyonX] Mixer command failed:', err);
         await refreshMixerStatus();
       }
     },
-    [mixerStatus?.connected, refreshMixerStatus]
+    [mixerConnectionHealth.connected, refreshMixerStatus]
   );
 
   const pushEQBandsToMixer = useCallback(
@@ -322,12 +534,12 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
       instrument: channel.instrument,
       input_source: channel.index,
     })
-      .then(setMixerStatus)
+      .then(applyMixerStatus)
       .catch(async (err) => {
         console.warn('[ElyonX] Mixer channel registration failed:', err);
         await refreshMixerStatus();
       });
-  }, [refreshMixerStatus, clearSuggestedEQSummary]);
+  }, [applyMixerStatus, refreshMixerStatus, clearSuggestedEQSummary]);
 
   const handleRemoveChannel = useCallback((channelId: string) => {
     const nextChannels = channels.filter((channel) => channel.id !== channelId);
@@ -652,7 +864,7 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
       <StatusBar barStyle="light-content" backgroundColor={colors.bg} />
 
       <TopBar
-        mixerConnected={Boolean(mixerStatus?.connected)}
+        mixerConnected={mixerConnectionHealth.connected}
         mixerName={mixerStatus?.mixer_name || mixerStatus?.model || 'X32'}
         rtaConnected={connected}
         rtaStreamOnline={streamOnline}
@@ -667,7 +879,7 @@ export const MixerScreen: React.FC<MixerScreenProps> = ({
         {showSettings ? (
           <SettingsPage
             onClose={() => setShowSettings(false)}
-            onMixerStatusChange={setMixerStatus}
+            onMixerStatusChange={applyMixerStatus}
           />
         ) : (
           <>

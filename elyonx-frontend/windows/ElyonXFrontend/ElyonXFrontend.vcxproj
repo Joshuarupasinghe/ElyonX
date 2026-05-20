@@ -102,6 +102,7 @@
   <ItemGroup>
     <ClInclude Include="ElyonXFrontend.h" />
     <ClInclude Include="AuthStorageModule.h" />
+    <ClInclude Include="DeepLinkModule.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="AutolinkedNativeModules.g.h" />
     <ClInclude Include="pch.h" />
@@ -110,6 +111,7 @@
   <ItemGroup>
     <ClCompile Include="ElyonXFrontend.cpp" />
     <ClCompile Include="AuthStorageModule.cpp" />
+    <ClCompile Include="DeepLinkModule.cpp" />
     <ClCompile Include="AutolinkedNativeModules.g.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

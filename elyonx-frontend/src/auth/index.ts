@@ -19,3 +19,7 @@ export type {
 
 export { setToken } from './tokenStorage';
 export { authFetch, api } from './apiClient';
+export {
+  addDeepLinkListener,
+  getInitialDeepLinkUrl,
+} from './deepLink';
